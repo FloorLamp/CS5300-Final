@@ -18,7 +18,7 @@ import org.apache.hadoop.util.*;
 
 import org.apache.commons.logging.*;
 
-public class FirstPass {
+public class SecondPass {
 
   // Logging
   static Log mapLog = LogFactory.getLog(Map.class);
@@ -68,7 +68,7 @@ public class FirstPass {
         
         // First find out if the node is a boundary node
         if( (nodeNum < m*(m - 1) && nodeNum % g*m >= g*(m-1)) ){
-          context.write(one, nodeStr);
+          context.write(one, new Text(nodeStr));
         }
         
         return;
@@ -82,7 +82,7 @@ public class FirstPass {
       public long nodeNum;
       public long nodeLabel;
       
-      public Node(gn, nn, nl){
+      public Node(long gn, long nn, long nl){
         groupNum = gn;
         nodeNum = nn;
         nodeLabel = nl;
@@ -92,31 +92,31 @@ public class FirstPass {
     public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       
       // Hashmaps with an appropriate initial capacity
-      HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>(m*m/g);
-      HashMap<Long, ArrayList<Node>> labelsMap = new HashMap<Long, ArrayList<Node>>(m*m/g);
+      HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
+      HashMap<Long, ArrayList<Node>> labelsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
       
       String nodeStr;
-      String[] node;
+      String[] nodeInfo;
       
       for(Text val : values) {
         nodeStr = val.toString();
         
-        node = nodeStr.split("\\s+");
+        nodeInfo = nodeStr.split("\\s+");
         
-        Node node = new Node(Long.parseLong(node[0]),
-                             Long.parseLong(node[1]),
-                             Long.parseLong(node[2]));
+        Node node = new Node(Long.parseLong(nodeInfo[0]),
+                             Long.parseLong(nodeInfo[1]),
+                             Long.parseLong(nodeInfo[2]));
         
         Long nn = new Long(node.nodeNum);
         Long nl = new Long(node.nodeLabel);
         
         if( positionsMap.get(nn) == null ){
-          positionsMap.put(new ArrayList<Node>());
+          positionsMap.put(nn, new ArrayList<Node>());
         }
         positionsMap.get(nn).add(node);
         
         if( labelsMap.get(nl) == null ){
-          labelsMap.put(new ArrayList<Node>());
+          labelsMap.put(nl, new ArrayList<Node>());
         }
         labelsMap.get(nl).add(node);
       }
@@ -126,7 +126,7 @@ public class FirstPass {
       List labels=new ArrayList(labelsMap.keySet());
       Collections.sort(labels);
       
-      // Perform a DFS
+      // Loop through labels, performing DFS where necessary
       
     }
   }
