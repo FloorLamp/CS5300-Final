@@ -69,11 +69,14 @@ public class SecondPass {
         mapLog.info("Group Number: " + groupNum);
         mapLog.info("Node Number: " + nodeNum);
         mapLog.info("Node Label: " + nodeLabel);
-        mapLog.info("m: " + m);
-        mapLog.info("g: " + g);
+        //mapLog.info("Limit last row: " + m*(m - 1));
+        long gm = g*m;
+        //mapLog.info("g*m: " + gm);
+        long modulus = nodeNum % gm;
+        //mapLog.info("modulus: " + modulus);
         
         // First find out if the node is a boundary node
-        if( (nodeNum < m*(m - 1)) && (nodeNum % g*m >= (g-1)*m) ){
+        if( (nodeNum < m*(m - 1)) && (modulus >= (g-1)*m) ){
           mapLog.info("BOUNDARY NODE");
           context.write(one, new Text(nodeStr));
         }
