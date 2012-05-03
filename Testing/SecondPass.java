@@ -97,13 +97,14 @@ public class SecondPass {
       
       String nodeStr;
       String[] nodeInfo;
+      Node node;
       
       for(Text val : values) {
         nodeStr = val.toString();
         
         nodeInfo = nodeStr.split("\\s+");
         
-        Node node = new Node(Long.parseLong(nodeInfo[0]),
+        node = new Node(Long.parseLong(nodeInfo[0]),
                              Long.parseLong(nodeInfo[1]),
                              Long.parseLong(nodeInfo[2]));
         
@@ -128,6 +129,16 @@ public class SecondPass {
       
       // Loop through labels, performing DFS where necessary
       
+      
+      // Loop through positions, outputting what we've found
+      for(long k = 0; (int)k < positions.size(); k++){
+          ArrayList<Node> nodes = positionsMap.get((int)k);
+          for(int l = 0; l < nodes.size(); l++){
+              node = nodes.get(l);
+              context.write(new LongWritable(node.groupNum), 
+                new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel))); 
+          }
+      } 
     }
   }
   	
