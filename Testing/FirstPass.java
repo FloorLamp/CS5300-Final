@@ -180,7 +180,7 @@ public class FirstPass {
         if(elements[(int)i] == 1){
           // Emit if node exists 
           context.write(new LongWritable(groupNum),
-              new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i]))); 
+              new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset))); 
           /*
           // Emit if on a boundary column
           reduceLog.info("Checking to see if we emit node " + Long.toString(i + offset));

@@ -66,16 +66,25 @@ public class SecondPass {
         long nodeNum = Long.parseLong(node[1]);
         long nodeLabel = Long.parseLong(node[2]);
         
+        mapLog.info("Group Number: " + groupNum);
+        mapLog.info("Node Number: " + nodeNum);
+        mapLog.info("Node Label: " + nodeLabel);
+        mapLog.info("m: " + m);
+        mapLog.info("g: " + g);
+        
         // First find out if the node is a boundary node
-        if( (nodeNum < m*(m - 1) && nodeNum % g*m >= g*(m-1)) ){
+        if( (nodeNum < m*(m - 1)) && (nodeNum % g*m >= (g-1)*m) ){
+          mapLog.info("BOUNDARY NODE");
           context.write(one, new Text(nodeStr));
         }
+        
+        mapLog.info("------------------------------------");
         
         return;
       }
   }
   
-  public static class Reduce extends Reducer<LongWritable,LongWritable,LongWritable,Text> {
+  public static class Reduce extends Reducer<LongWritable,Text,LongWritable,Text> {
     
     public class Node{
       public long groupNum;
@@ -122,17 +131,26 @@ public class SecondPass {
         labelsMap.get(nl).add(node);
       }
       
-      List positions=new ArrayList(positionsMap.keySet());
+      List<Long> positions=new ArrayList<Long>(positionsMap.keySet());
       Collections.sort(positions);
-      List labels=new ArrayList(labelsMap.keySet());
+      List<Long> labels=new ArrayList<Long>(labelsMap.keySet());
       Collections.sort(labels);
       
+      /*
       // Loop through labels, performing DFS where necessary
-      
+      for(long i = 0; (int)i < labels.size(); i++){
+          long label = labels.get((int)i).longValue();
+          nodeLabel
+          if( labelsMap.get((int)label).get(1).nodeLabel > label ){
+              labelDFS
+          }
+      }
+      */
       
       // Loop through positions, outputting what we've found
       for(long k = 0; (int)k < positions.size(); k++){
-          ArrayList<Node> nodes = positionsMap.get((int)k);
+          Long position = positions.get((int)k);
+          ArrayList<Node> nodes = positionsMap.get(position);
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
               context.write(new LongWritable(node.groupNum), 
@@ -149,7 +167,7 @@ public class SecondPass {
     Job job = new Job(conf, "secondpass");
 
     job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(LongWritable.class);
+    job.setMapOutputValueClass(Text.class);
 
     job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(Text.class);
