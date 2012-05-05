@@ -66,9 +66,9 @@ public class SecondPass {
         long nodeNum = Long.parseLong(node[1]);
         long nodeLabel = Long.parseLong(node[2]);
         
-        mapLog.info("Group Number: " + groupNum);
-        mapLog.info("Node Number: " + nodeNum);
-        mapLog.info("Node Label: " + nodeLabel);
+        //mapLog.info("Group Number: " + groupNum);
+        //mapLog.info("Node Number: " + nodeNum);
+        //mapLog.info("Node Label: " + nodeLabel);
         //mapLog.info("Limit last row: " + m*(m - 1));
         long gm = g*m;
         //mapLog.info("g*m: " + gm);
@@ -77,11 +77,11 @@ public class SecondPass {
         
         // First find out if the node is a boundary node
         if( (nodeNum < m*(m - 1)) && (modulus >= (g-1)*m) ){
-          mapLog.info("BOUNDARY NODE");
+          //mapLog.info("BOUNDARY NODE");
           context.write(one, new Text(nodeStr));
         }
         
-        mapLog.info("------------------------------------");
+        //mapLog.info("------------------------------------");
         
         return;
       }
@@ -93,12 +93,39 @@ public class SecondPass {
       public long groupNum;
       public long nodeNum;
       public long nodeLabel;
+      public boolean visited;
       
       public Node(long gn, long nn, long nl){
         groupNum = gn;
         nodeNum = nn;
         nodeLabel = nl;
+        visited = false;
       }
+    }
+    
+    private static void dfs(long currentLabel, long newLabel,
+      HashMap<Long, ArrayList<Node>> positionsMap, HashMap<Long, ArrayList<Node>> labelsMap){
+        Long key = new Long(currentLabel);
+        ArrayList<Node> nodes = labelsMap.get(key);
+        
+        if(nodes.get(0).visited){
+            return;
+        }
+        
+        // Iterate through each position in the labels list, running dfs
+        // on each of those labels
+        for(int i = 0; i < nodes.size(); i++){
+            nodes.get(i).nodeLabel = newLabel;
+            nodes.get(i).visited = true;
+        }
+        
+         for(int i = 0; i < nodes.size(); i++){
+            Long nodeNum = new Long(nodes.get(i).nodeNum);
+            ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
+            for(int j = 0; j < nodesWithNodeNum.size(); j++){
+                dfs(nodesWithNodeNum.get(i).nodeLabel, newLabel, positionsMap, labelsMap);
+            }
+        }
     }
     
     public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
@@ -139,16 +166,13 @@ public class SecondPass {
       List<Long> labels=new ArrayList<Long>(labelsMap.keySet());
       Collections.sort(labels);
       
-      /*
       // Loop through labels, performing DFS where necessary
       for(long i = 0; (int)i < labels.size(); i++){
-          long label = labels.get((int)i).longValue();
-          nodeLabel
-          if( labelsMap.get((int)label).get(1).nodeLabel > label ){
-              labelDFS
+          Long label = labels.get((int)i);
+          if( !(labelsMap.get(label).get(0).visited) ){
+              dfs(label.longValue(), label.longValue(), positionsMap, labelsMap);
           }
       }
-      */
       
       // Loop through positions, outputting what we've found
       for(long k = 0; (int)k < positions.size(); k++){
