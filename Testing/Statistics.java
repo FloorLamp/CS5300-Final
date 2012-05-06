@@ -18,24 +18,23 @@ public class Statistics {
 			output.collect(one, new Text(line.substring(line.indexOf(' ')+1)));
 			}
 		}
-	}
 	
 	public static class Reduce extends MapReduceBase implements Reducer<LongWritable, Text, LongWritable, Text> {
-		public static long TOTAL_POINTS = 10000*10000;
+		public static Long TOTAL_POINTS = 10000*10000l;
 		public void reduce(LongWritable key, Iterator<Text> values, OutputCollector<LongWritable, Text> output, Reporter reporter) 
 				throws IOException {
         	LongWritable one = new LongWritable(1);
 			
-			Map<long, ArrayList<long>> components = new HashMap<long, ArrayList<long>>();
-			Set<long> uniqueNodes = new HashSet<long>();
+			Map<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
+			Set<Long> uniqueNodes = new HashSet<Long>();
 						
 			while (values.hasNext()) {
 				String[] line = values.next().toString().split(' ');
-				long node = Long.parseLong(line[0]);
-				long label = Long.parseLong(line[1]);
+				Long node = Long.parseLong(line[0]);
+				Long label = Long.parseLong(line[1]);
 				if (!uniqueNodes.contains(node)) {
 					uniqueNodes.add(node);
-					ArrayList<long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<long>();
+					ArrayList<Long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Long>();
 					nodes.add(node);
 				}
 			}
@@ -45,7 +44,7 @@ public class Statistics {
 			long totalComponents = components.size();
 
 			float sum = 0;
-			for (ArrayList<long> componentNodes : components.values()) {
+			for (ArrayList<Long> componentNodes : components.values()) {
 				int ccSize = componentNodes.size();
 				sum += ccSize * ccSize;
 			}
@@ -58,8 +57,8 @@ public class Statistics {
 						"Number of distinct connected components: %s \n" + 
 						"Average size of connected components: %s \n" + 
 						"Average burn count: %s \n";
-			String stats = String.format(s, totalNodes.toString(), totalEdges.toString(), 
-				totalComponents.toString(), averageComponentSize.toString(), averageBurnCount.toString());
+			String stats = String.format(s, Long.toString(totalNodes), Long.toString(totalEdges), 
+				Long.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
 						
 			output.collect(one, new Text(stats));
 		}
@@ -85,5 +84,3 @@ public class Statistics {
 		JobClient.runJob(conf);
 	}
 }
-
-
