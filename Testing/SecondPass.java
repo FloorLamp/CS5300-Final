@@ -107,23 +107,30 @@ public class SecondPass {
       HashMap<Long, ArrayList<Node>> positionsMap, HashMap<Long, ArrayList<Node>> labelsMap){
         Long key = new Long(currentLabel);
         ArrayList<Node> nodes = labelsMap.get(key);
+        //if(nodes.get(0).visited){
+        //    return;
+        //}
         
-        if(nodes.get(0).visited){
-            return;
-        }
+        reduceLog.info("DFS");
         
         // Iterate through each position in the labels list, running dfs
         // on each of those labels
         for(int i = 0; i < nodes.size(); i++){
             nodes.get(i).nodeLabel = newLabel;
             nodes.get(i).visited = true;
+            reduceLog.info("Node " + nodes.get(i).nodeNum + " marked as visited with label " + nodes.get(i).nodeLabel);
         }
         
          for(int i = 0; i < nodes.size(); i++){
             Long nodeNum = new Long(nodes.get(i).nodeNum);
+            reduceLog.info("Position: " + nodeNum.longValue());
             ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
+            reduceLog.info("Number of elements at this position: " + nodesWithNodeNum.size());
             for(int j = 0; j < nodesWithNodeNum.size(); j++){
-                dfs(nodesWithNodeNum.get(i).nodeLabel, newLabel, positionsMap, labelsMap);
+                if(!(nodesWithNodeNum.get(j).visited)){
+                    reduceLog.info("Also processing label: " + nodesWithNodeNum.get(i).nodeLabel);
+                    dfs(nodesWithNodeNum.get(j).nodeLabel, newLabel, positionsMap, labelsMap);
+                }
             }
         }
     }
@@ -146,7 +153,8 @@ public class SecondPass {
         node = new Node(Long.parseLong(nodeInfo[0]),
                              Long.parseLong(nodeInfo[1]),
                              Long.parseLong(nodeInfo[2]));
-        
+        reduceLog.info("Node number: " + node.nodeNum);
+        reduceLog.info("Node label: " + node.nodeLabel);
         Long nn = new Long(node.nodeNum);
         Long nl = new Long(node.nodeLabel);
         
@@ -168,8 +176,10 @@ public class SecondPass {
       
       // Loop through labels, performing DFS where necessary
       for(long i = 0; (int)i < labels.size(); i++){
+          reduceLog.info("Processing label: " + labels.get((int)i));
           Long label = labels.get((int)i);
           if( !(labelsMap.get(label).get(0).visited) ){
+              reduceLog.info("Need to do a DFS");
               dfs(label.longValue(), label.longValue(), positionsMap, labelsMap);
           }
       }
@@ -183,7 +193,8 @@ public class SecondPass {
               context.write(new LongWritable(node.groupNum), 
                 new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel))); 
           }
-      } 
+      }
+      reduceLog.info("--------------------------------------"); 
     }
   }
   	
