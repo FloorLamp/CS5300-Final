@@ -18,7 +18,7 @@ import org.apache.hadoop.util.*;
 
 import org.apache.commons.logging.*;
 
-public class SecondPass {
+public class ThirdPass {
 
   // Logging
   static Log mapLog = LogFactory.getLog(Map.class);
@@ -75,11 +75,7 @@ public class SecondPass {
         long modulus = nodeNum % gm;
         //mapLog.info("modulus: " + modulus);
         
-        // First find out if the node is a boundary node
-        if( (nodeNum < m*(m - 1)) && (modulus >= (g-1)*m) ){
-          //mapLog.info("BOUNDARY NODE");
-          context.write(one, new Text(nodeStr));
-        }
+        context.write(new LongWritable(groupNum), new Text(node[1] + " " + node[2]));
         
         //mapLog.info("------------------------------------");
         
@@ -87,7 +83,7 @@ public class SecondPass {
       }
   }
   
-  public static class Reduce extends Reducer<LongWritable,Text,LongWritable,Text> {
+  public static class Reduce extends Reducer<LongWritable,Text,LongWritable,LongWritable> {
     
     public class Node{
       public long groupNum;
@@ -145,14 +141,16 @@ public class SecondPass {
       String[] nodeInfo;
       Node node;
       
+      long groupNum = key.get();
+      
       for(Text val : values) {
         nodeStr = val.toString();
         
         nodeInfo = nodeStr.split("\\s+");
         
-        node = new Node(Long.parseLong(nodeInfo[0]),
-                             Long.parseLong(nodeInfo[1]),
-                             Long.parseLong(nodeInfo[2]));
+        node = new Node(groupNum,
+                             Long.parseLong(nodeInfo[0]),
+                             Long.parseLong(nodeInfo[1]));
         reduceLog.info("Node number: " + node.nodeNum);
         reduceLog.info("Node label: " + node.nodeLabel);
         Long nn = new Long(node.nodeNum);
@@ -190,8 +188,8 @@ public class SecondPass {
           ArrayList<Node> nodes = positionsMap.get(position);
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
-              context.write(new LongWritable(node.groupNum), 
-                new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel))); 
+              context.write(new LongWritable(node.nodeNum), 
+                new LongWritable(node.nodeLabel)); 
           }
       }
       reduceLog.info("--------------------------------------"); 
@@ -202,13 +200,13 @@ public class SecondPass {
 
     Configuration conf = new Configuration();
         
-    Job job = new Job(conf, "secondpass");
+    Job job = new Job(conf, "thirdpass");
 
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
 
     job.setOutputKeyClass(LongWritable.class);
-    job.setOutputValueClass(Text.class);
+    job.setOutputValueClass(LongWritable.class);
         
     job.setMapperClass(Map.class);
     job.setReducerClass(Reduce.class);
@@ -217,7 +215,8 @@ public class SecondPass {
     job.setOutputFormatClass(TextOutputFormat.class);
            
     FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    FileInputFormat.addInputPath(job, new Path(args[1]));
+    FileOutputFormat.setOutputPath(job, new Path(args[2]));
         
     job.waitForCompletion(true); 
     /*
