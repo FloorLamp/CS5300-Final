@@ -52,8 +52,8 @@ public class ConnectedComponents {
     }
   }
 
-  private static final long m = 4;
-  private static final long g = computeG(m);
+  private static long m;
+  private static long g;
   
   // compute filter parameters for netid jsh263
   private static final double fromNetID = 0.362;
@@ -392,6 +392,9 @@ public class ConnectedComponents {
   
   public static void main(String[] args) throws Exception {
 
+    m = Long.parseLong(args[0]);
+    g= computeG(m);
+
     Configuration conf = new Configuration();
         
     Job job = new Job(conf, "firstpass");
@@ -403,8 +406,8 @@ public class ConnectedComponents {
     job.setReducerClass(FirstPassReduce.class);        
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);       
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+    FileInputFormat.addInputPath(job, new Path(args[1]));
+    FileOutputFormat.setOutputPath(job, new Path(args[2]));
     job.waitForCompletion(true);
     
     job = new Job(conf, "secondpass");
@@ -416,8 +419,8 @@ public class ConnectedComponents {
     job.setReducerClass(SecondPassReduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
-    FileInputFormat.addInputPath(job, new Path(args[1]));
-    FileOutputFormat.setOutputPath(job, new Path(args[2]));
+    FileInputFormat.addInputPath(job, new Path(args[2]));
+    FileOutputFormat.setOutputPath(job, new Path(args[3]));
     job.waitForCompletion(true);
     
     job = new Job(conf, "thirdpass");
@@ -429,9 +432,9 @@ public class ConnectedComponents {
     job.setReducerClass(ThirdPassReduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
-    FileInputFormat.addInputPath(job, new Path(args[1]));
     FileInputFormat.addInputPath(job, new Path(args[2]));
-    FileOutputFormat.setOutputPath(job, new Path(args[3]));
+    FileInputFormat.addInputPath(job, new Path(args[3]));
+    FileOutputFormat.setOutputPath(job, new Path(args[4]));
     job.waitForCompletion(true); 
   }
 }
