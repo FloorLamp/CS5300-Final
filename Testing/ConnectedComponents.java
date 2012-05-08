@@ -42,12 +42,14 @@ public class ConnectedComponents {
     public long groupNum;
     public long nodeNum;
     public long nodeLabel;
+    public long numEdges;
     public boolean visited;
     
-    public Node(long gn, long nn, long nl){
+    public Node(long gn, long nn, long nl, long ne){
       groupNum = gn;
       nodeNum = nn;
       nodeLabel = nl;
+      numEdges = ne;
       visited = false;
     }
   }
@@ -136,6 +138,35 @@ public class ConnectedComponents {
       return;
     }
     
+    // count edges for a node
+    private static void countEdges(long i, long[] elements, long[] edgeCount){
+      if(i % m != (m - 1) && i != elements.length){
+        if(elements[(int)(i + 1)] != 0){
+          edgeCount[(int)i] += 1;
+        }
+      }
+      
+      if(i % m != 0 && i != 0){
+        if(elements[(int)(i - 1)] != 0){
+          edgeCount[(int)i] += 1;
+        }
+      }
+      
+      if(i >= m){
+        if(elements[(int)(i - m)] != 0){
+          edgeCount[(int)i] += 1;
+        }
+      }
+      
+      if(i < elements.length - m){
+        if(elements[(int)(i + m)] != 0){
+          edgeCount[(int)i] += 1;
+        }
+      }
+      
+      return;
+    }
+    
     public void reduce(LongWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
       
       long groupNum = key.get();
@@ -146,6 +177,7 @@ public class ConnectedComponents {
       
       long[] elements = new long[(int)maxElements];
       long[] label = new long[(int)maxElements];
+      long[] edgeCount = new long[(int)maxElements];
       Arrays.fill(label, (long)(-1));
       
       for(LongWritable val : values) {
@@ -159,9 +191,12 @@ public class ConnectedComponents {
           dfs(i, i, elements, label);
         }
         if(elements[(int)i] == 1){
+          // Count the number of edges for a node
+          countEdges(i, elements, edgeCount);
           // Emit if node exists 
           context.write(new LongWritable(groupNum),
-              new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset))); 
+              new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset)
+                        + " " + Long.toString(edgeCount[(int)i]))); 
         }
       }
     }
@@ -182,6 +217,7 @@ public class ConnectedComponents {
         long groupNum = Long.parseLong(node[0]);
         long nodeNum = Long.parseLong(node[1]);
         long nodeLabel = Long.parseLong(node[2]);
+        long numEdges = Long.parseLong(node[3]);
         
         long gm = g*m;
         long modulus = nodeNum % gm;
@@ -238,7 +274,8 @@ public class ConnectedComponents {
         
         node = new Node(Long.parseLong(nodeInfo[0]),
                              Long.parseLong(nodeInfo[1]),
-                             Long.parseLong(nodeInfo[2]));
+                             Long.parseLong(nodeInfo[2]),
+                             Long.parseLong(nodeInfo[3]));
         Long nn = new Long(node.nodeNum);
         Long nl = new Long(node.nodeLabel);
         
@@ -270,10 +307,17 @@ public class ConnectedComponents {
       for(long k = 0; (int)k < positions.size(); k++){
           Long position = positions.get((int)k);
           ArrayList<Node> nodes = positionsMap.get(position);
+          // Get edge counts for each node
+          long totalEdges = 0;
+          for(int l = 0; l < nodes.size(); l++){
+              totalEdges += nodes.get(l).numEdges;
+          }
+          
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
               context.write(new LongWritable(node.groupNum), 
-                new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel))); 
+                new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel) + 
+                         " " + Long.toString(totalEdges))); 
           }
       }
     }
@@ -294,17 +338,18 @@ public class ConnectedComponents {
         long groupNum = Long.parseLong(node[0]);
         long nodeNum = Long.parseLong(node[1]);
         long nodeLabel = Long.parseLong(node[2]);
+        long numEdges = Long.parseLong(node[3]);
         
         long gm = g*m;
         long modulus = nodeNum % gm;
         
-        context.write(new LongWritable(groupNum), new Text(node[1] + " " + node[2]));
+        context.write(new LongWritable(groupNum), new Text(node[1] + " " + node[2] + " " + node[3]));
         
         return;
       }
   }
   
-  public static class ThirdPassReduce extends Reducer<LongWritable,Text,LongWritable,LongWritable> {
+  public static class ThirdPassReduce extends Reducer<LongWritable,Text,LongWritable,Text> {
     
     private static void dfs(long currentLabel, long newLabel,
       HashMap<Long, ArrayList<Node>> positionsMap, HashMap<Long, ArrayList<Node>> labelsMap){
@@ -348,7 +393,8 @@ public class ConnectedComponents {
         
         node = new Node(groupNum,
                              Long.parseLong(nodeInfo[0]),
-                             Long.parseLong(nodeInfo[1]));
+                             Long.parseLong(nodeInfo[1]),
+                             Long.parseLong(nodeInfo[2]));
         Long nn = new Long(node.nodeNum);
         Long nl = new Long(node.nodeLabel);
         
@@ -380,12 +426,17 @@ public class ConnectedComponents {
       for(long k = 0; (int)k < positions.size(); k++){
           Long position = positions.get((int)k);
           ArrayList<Node> nodes = positionsMap.get(position);
-          //for(int l = 0; l < nodes.size(); l++){
-              //node = nodes.get(l);
-              node = nodes.get(0);
-              context.write(new LongWritable(node.nodeNum), 
-                new LongWritable(node.nodeLabel)); 
-          //}
+          long edgeCount = 0;
+          for(int l = 0; l < nodes.size(); l++){
+              node = nodes.get(l);
+              if(node.numEdges > edgeCount){
+                  edgeCount = node.numEdges;
+              }
+          }
+          node = nodes.get(0);
+          context.write(new LongWritable(node.nodeNum), 
+                new Text(Long.toString(node.nodeLabel) + " " +
+                         Long.toString(edgeCount)));
       }
     }
   }
