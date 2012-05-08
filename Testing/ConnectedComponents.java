@@ -140,18 +140,23 @@ public class ConnectedComponents {
     
     // count edges for a node
     private static void countEdges(long i, long[] elements, long[] edgeCount){
-      if(i % m != (m - 1) && i != elements.length){
-        if(elements[(int)(i + 1)] != 0){
-          edgeCount[(int)i] += 1;
+    
+      if(!(i < m && elements.length != g*m) ){ // So that we do not double count boundary edges
+                                               // Don't count up and down edges if in
+                                               //    the first column for all groups
+                                               //    except group 0
+        if(i % m != (m - 1) && i != elements.length){
+          if(elements[(int)(i + 1)] != 0){
+            edgeCount[(int)i] += 1;
+          }
+        }
+        
+        if(i % m != 0 && i != 0){
+          if(elements[(int)(i - 1)] != 0){
+            edgeCount[(int)i] += 1;
+          }
         }
       }
-      
-      if(i % m != 0 && i != 0){
-        if(elements[(int)(i - 1)] != 0){
-          edgeCount[(int)i] += 1;
-        }
-      }
-      
       if(i >= m){
         if(elements[(int)(i - m)] != 0){
           edgeCount[(int)i] += 1;
