@@ -20,7 +20,8 @@ public class Statistics {
 		}
 	
 	public static class Reduce extends MapReduceBase implements Reducer<LongWritable, Text, LongWritable, Text> {
-		public static Long TOTAL_POINTS = 10000*10000l;
+		//public static Long TOTAL_POINTS = 10000*10000l;
+		public static Long TOTAL_POINTS = 4*4l;
 		public void reduce(LongWritable key, Iterator<Text> values, OutputCollector<LongWritable, Text> output, Reporter reporter) 
 				throws IOException {
         	LongWritable one = new LongWritable(1);
@@ -30,7 +31,7 @@ public class Statistics {
 			HashSet<Long> uniqueNodes = new HashSet<Long>();
 						
 			while (values.hasNext()) {
-				String[] line = values.next().toString().split(" ");
+				String[] line = values.next().toString().split("\\s+");
 				Long node = Long.parseLong(line[0]);
 				Long label = Long.parseLong(line[1]);
 				Long edges = Long.parseLong(line[2]);
@@ -70,8 +71,8 @@ public class Statistics {
 		JobConf conf = new JobConf(Statistics.class);
 		conf.setJobName("statistics");
 		
-		conf.setOutputKeyClass(Text.class);
-		conf.setOutputValueClass(IntWritable.class);
+		conf.setOutputKeyClass(LongWritable.class);
+		conf.setOutputValueClass(Text.class);
 		
 		conf.setMapperClass(Map.class);
 		conf.setCombinerClass(Reduce.class);
