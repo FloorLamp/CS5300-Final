@@ -26,11 +26,11 @@ public class Statistics {
         	LongWritable one = new LongWritable(1);
 			
 			long totalEdges = 0;
-			Map<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
-			Set<Long> uniqueNodes = new HashSet<Long>();
+			HashMap<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
+			HashSet<Long> uniqueNodes = new HashSet<Long>();
 						
 			while (values.hasNext()) {
-				String[] line = values.next().toString().split(' ');
+				String[] line = values.next().toString().split(" ");
 				Long node = Long.parseLong(line[0]);
 				Long label = Long.parseLong(line[1]);
 				Long edges = Long.parseLong(line[2]);
