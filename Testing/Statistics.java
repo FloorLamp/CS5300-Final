@@ -7,8 +7,10 @@ import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.util.*;
 
-public class Statistics {
+import org.apache.commons.logging.*;
 
+public class Statistics {
+  static Log mapLog = LogFactory.getLog(Map.class);
 // node number, label, edges
 	public static class Map extends MapReduceBase implements Mapper<LongWritable, Text, LongWritable, Text> {
 		public void map(LongWritable key, Text value, OutputCollector<LongWritable, Text> output, Reporter reporter) 
@@ -21,7 +23,7 @@ public class Statistics {
 	
 	public static class Reduce extends MapReduceBase implements Reducer<LongWritable, Text, LongWritable, Text> {
 		//public static Long TOTAL_POINTS = 10000*10000l;
-		public static Long TOTAL_POINTS = 4*4l;
+		public static Long TOTAL_POINTS = 40*40l;
 		public void reduce(LongWritable key, Iterator<Text> values, OutputCollector<LongWritable, Text> output, Reporter reporter) 
 				throws IOException {
         	LongWritable one = new LongWritable(1);
@@ -31,7 +33,8 @@ public class Statistics {
 			HashSet<Long> uniqueNodes = new HashSet<Long>();
 						
 			while (values.hasNext()) {
-				String[] line = values.next().toString().split("\\s+");
+			  String val = values.next().toString();
+				String[] line = val.split("\\s+");
 				Long node = Long.parseLong(line[0]);
 				Long label = Long.parseLong(line[1]);
 				Long edges = Long.parseLong(line[2]);
@@ -40,6 +43,7 @@ public class Statistics {
 					ArrayList<Long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Long>();
 					nodes.add(node);
 					totalEdges += edges;
+					components.put(label, nodes);
 				}
 			}
 			totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
@@ -75,7 +79,6 @@ public class Statistics {
 		conf.setOutputValueClass(Text.class);
 		
 		conf.setMapperClass(Map.class);
-		conf.setCombinerClass(Reduce.class);
 		conf.setReducerClass(Reduce.class);
 		
 		conf.setInputFormat(TextInputFormat.class);
