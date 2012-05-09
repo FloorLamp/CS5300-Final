@@ -446,6 +446,61 @@ public class ConnectedComponents {
     }
   }
   
+  public static class StatisticsMap extends Mapper<LongWritable, Text, LongWritable, Text> {
+	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+    	LongWritable one = new LongWritable(1);
+		String line = value.toString();
+		context.write(one, new Text(line));
+		}
+	}
+	
+  public static class StatisticsReduce extends Reducer<LongWritable, Text, LongWritable, Text> {
+	public void reduce(LongWritable key, Iterator<Text> values, Context context) throws IOException, InterruptedException {
+    	LongWritable one = new LongWritable(1);
+		
+		long totalEdges = 0;
+		HashMap<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
+		HashSet<Long> uniqueNodes = new HashSet<Long>();
+					
+		while (values.hasNext()) {
+		  String val = values.next().toString();
+			String[] line = val.split("\\s+");
+			Long node = Long.parseLong(line[0]);
+			Long label = Long.parseLong(line[1]);
+			Long edges = Long.parseLong(line[2]);
+			if (!uniqueNodes.contains(node)) {
+				uniqueNodes.add(node);
+				ArrayList<Long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Long>();
+				nodes.add(node);
+				totalEdges += edges;
+				components.put(label, nodes);
+			}
+		}
+		totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
+		long totalNodes = uniqueNodes.size();
+		long totalComponents = components.size();
+
+		float sum = 0;
+		for (ArrayList<Long> componentNodes : components.values()) {
+			int ccSize = componentNodes.size();
+			sum += ccSize * ccSize;
+		}
+		
+		float averageBurnCount = sum / m;
+		float averageComponentSize = sum / totalNodes;
+		
+		String s = "Number of vertices: %s \n" + 
+					"Number of edges: %s \n" + 
+					"Number of distinct connected components: %s \n" + 
+					"Average size of connected components: %s \n" + 
+					"Average burn count: %s \n";
+		String stats = String.format(s, Long.toString(totalNodes), Long.toString(totalEdges), 
+			Long.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
+					
+		context.write(one, new Text(stats));
+	}
+  }
+  
   public static void main(String[] args) throws Exception {
 
     m = Long.parseLong(args[0]);
@@ -491,6 +546,19 @@ public class ConnectedComponents {
     FileInputFormat.addInputPath(job, new Path(args[2]));
     FileInputFormat.addInputPath(job, new Path(args[3]));
     FileOutputFormat.setOutputPath(job, new Path(args[4]));
+    job.waitForCompletion(true); 
+    
+    job = new Job(conf, "statistics");
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(Text.class);
+    job.setOutputKeyClass(LongWritable.class);
+    job.setOutputValueClass(Text.class);
+    job.setMapperClass(StatisticsMap.class);
+    job.setReducerClass(StatisticsReduce.class);
+    job.setInputFormatClass(TextInputFormat.class);
+    job.setOutputFormatClass(TextOutputFormat.class);
+    FileInputFormat.addInputPath(job, new Path(args[4]));
+    FileOutputFormat.setOutputPath(job, new Path(args[5]));
     job.waitForCompletion(true); 
   }
 }
