@@ -9,13 +9,13 @@ import org.apache.hadoop.util.*;
 
 public class Statistics {
 
-	// group number, node number, label
+// node number, label, edges
 	public static class Map extends MapReduceBase implements Mapper<LongWritable, Text, LongWritable, Text> {
 		public void map(LongWritable key, Text value, OutputCollector<LongWritable, Text> output, Reporter reporter) 
 				throws IOException {
         	LongWritable one = new LongWritable(1);
 			String line = value.toString();
-			output.collect(one, new Text(line.substring(line.indexOf(' ')+1)));
+			output.collect(one, new Text(line));
 			}
 		}
 	
@@ -25,6 +25,7 @@ public class Statistics {
 				throws IOException {
         	LongWritable one = new LongWritable(1);
 			
+			long totalEdges = 0;
 			Map<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
 			Set<Long> uniqueNodes = new HashSet<Long>();
 						
@@ -32,14 +33,15 @@ public class Statistics {
 				String[] line = values.next().toString().split(' ');
 				Long node = Long.parseLong(line[0]);
 				Long label = Long.parseLong(line[1]);
+				Long edges = Long.parseLong(line[2]);
 				if (!uniqueNodes.contains(node)) {
 					uniqueNodes.add(node);
 					ArrayList<Long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Long>();
 					nodes.add(node);
+					totalEdges += edges;
 				}
 			}
-			
-			long totalEdges = 0;
+			totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
 			long totalNodes = uniqueNodes.size();
 			long totalComponents = components.size();
 
