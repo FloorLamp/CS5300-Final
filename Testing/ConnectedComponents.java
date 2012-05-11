@@ -505,12 +505,25 @@ public class ConnectedComponents {
   
   public static void main(String[] args) throws Exception {
 
+    // Format for folders on S3:
+    // s3://(file|folder)
+    // Order of args: m inputPath outputPath
+
     m = Long.parseLong(args[0]);
     g= computeG(m);
+
+    String input = args[1];
+    String output = args[2];
+
+    String  first = "FirstPassOutput";
+    String  second = "SecondPassOutput";
+    String  third = "ThirdPassOutput";
+    String  stats = "StatisticsOutput";
 
     Configuration conf = new Configuration();
         
     Job job = new Job(conf, "firstpass");
+    job.setJarByClass(ConnectedComponents.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(LongWritable.class);
     job.setOutputKeyClass(LongWritable.class);
@@ -519,11 +532,12 @@ public class ConnectedComponents {
     job.setReducerClass(FirstPassReduce.class);        
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);       
-    FileInputFormat.addInputPath(job, new Path(args[1]));
-    FileOutputFormat.setOutputPath(job, new Path(args[2]));
+    FileInputFormat.addInputPath(job, new Path(input));
+    FileOutputFormat.setOutputPath(job, new Path(output + "/" + first));
     job.waitForCompletion(true);
     
     job = new Job(conf, "secondpass");
+    job.setJarByClass(ConnectedComponents.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(LongWritable.class);
@@ -532,11 +546,12 @@ public class ConnectedComponents {
     job.setReducerClass(SecondPassReduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
-    FileInputFormat.addInputPath(job, new Path(args[2]));
-    FileOutputFormat.setOutputPath(job, new Path(args[3]));
+    FileInputFormat.addInputPath(job, new Path(output + "/" + first));
+    FileOutputFormat.setOutputPath(job, new Path(output + "/" + second));
     job.waitForCompletion(true);
     
     job = new Job(conf, "thirdpass");
+    job.setJarByClass(ConnectedComponents.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(LongWritable.class);
@@ -545,12 +560,13 @@ public class ConnectedComponents {
     job.setReducerClass(ThirdPassReduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
-    FileInputFormat.addInputPath(job, new Path(args[2]));
-    FileInputFormat.addInputPath(job, new Path(args[3]));
-    FileOutputFormat.setOutputPath(job, new Path(args[4]));
+    FileInputFormat.addInputPath(job, new Path(output + "/" + first));
+    FileInputFormat.addInputPath(job, new Path(output + "/" + second));
+    FileOutputFormat.setOutputPath(job, new Path(output + "/" + third));
     job.waitForCompletion(true); 
     
     job = new Job(conf, "statistics");
+    job.setJarByClass(ConnectedComponents.class);
     job.setMapOutputKeyClass(LongWritable.class);
     job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(LongWritable.class);
@@ -559,8 +575,8 @@ public class ConnectedComponents {
     job.setReducerClass(StatisticsReduce.class);
     job.setInputFormatClass(TextInputFormat.class);
     job.setOutputFormatClass(TextOutputFormat.class);
-    FileInputFormat.addInputPath(job, new Path(args[4]));
-    FileOutputFormat.setOutputPath(job, new Path(args[5]));
+    FileInputFormat.addInputPath(job, new Path(output + "/" + third));
+    FileOutputFormat.setOutputPath(job, new Path(output + "/" + stats));
     job.waitForCompletion(true); 
   }
 }
