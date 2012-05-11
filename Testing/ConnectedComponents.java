@@ -1,4 +1,4 @@
-package org.myorg;
+package cs5300;
 	
 import java.io.IOException;
 import java.util.*;
@@ -13,7 +13,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.*;
 
-import org.apache.commons.logging.*;
+//import org.apache.commons.logging.*;
 
 public class ConnectedComponents {
 
@@ -455,8 +455,10 @@ public class ConnectedComponents {
 	}
 	
   public static class StatisticsReduce extends Reducer<LongWritable, Text, LongWritable, Text> {
-	public void reduce(LongWritable key, Iterator<Text> values, Context context) throws IOException, InterruptedException {
-    	LongWritable one = new LongWritable(1);
+	public void reduce(LongWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
+    LongWritable one = new LongWritable(1);
+		
+		Iterator<Text> values = iterableValues.iterator();
 		
 		long totalEdges = 0;
 		HashMap<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
@@ -486,7 +488,7 @@ public class ConnectedComponents {
 			sum += ccSize * ccSize;
 		}
 		
-		float averageBurnCount = sum / m;
+		float averageBurnCount = sum / (m*m);
 		float averageComponentSize = sum / totalNodes;
 		
 		String s = "Number of vertices: %s \n" + 
