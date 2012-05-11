@@ -506,7 +506,7 @@ public class ConnectedComponents {
   public static void main(String[] args) throws Exception {
 
     // Format for folders on S3:
-    // s3://(file|folder)
+    // s3n://(file|folder)
     // Order of args: m inputPath outputPath
 
     m = Long.parseLong(args[0]);
