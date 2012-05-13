@@ -75,15 +75,7 @@ public class ConnectedComponents {
         float val = Float.parseFloat(value.toString());
         
         int lineNum = (int)(key.get() / 12 + 1);
-        /*
-        System.out.println("-----------------------------------------");
-        System.out.println("FIRST MAP CALLED");
-        System.out.println("Text seen is: " + value.toString());
-        System.out.println("m: " + m);
-        System.out.println("g: " + g);
-        System.out.println("Line number: " + lineNum);
-        System.out.println("-----------------------------------------");
-        */
+
         // Make sure m is actually going to be a point in our graph
         if(lineNum > m*m || val < wMin || val >= wLimit){
           return;
@@ -112,50 +104,12 @@ public class ConnectedComponents {
         if(x != (m - 1) && (x % g) == (g - 1)){
           context.write(new IntWritable(x/g + 1), new IntWritable(x*m + y));
         }
-        /*
-        //mapLog.info("-----------------------------------------");
-        //mapLog.info("MAP IS WORKING");
-        //mapLog.info("-----------------------------------------");
-        System.out.println("-----------------------------------------");
-        System.out.println("FIRST MAP COMPLETED SINGLE MAPPING");
-        System.out.println("-----------------------------------------");
-        */
+
         return;
       }
   }
 	
     public static class FirstPassReduce extends Reducer<IntWritable,IntWritable,IntWritable,Text> {
-    
-    /*
-    // Depth first labeling for the nodes
-    private static void dfs(int m, int i, int l, int[] elements, int[] label){
-      label[i] = l;
-      if(i % m != (m - 1) && i != elements.length){
-        if(elements[(i + 1)] != 0 && label[(i + 1)] == -1){
-          dfs(m, i+1, l, elements, label);
-        }
-      }
-      
-      if(i % m != 0 && i != 0){
-        if(elements[(i - 1)] != 0  && label[(i - 1)] == -1){
-          dfs(m, i-1, l, elements, label);
-        }
-      }
-      
-      if(i >= m){
-        if(elements[(i - m)] != 0  && label[(i - m)] == -1){
-          dfs(m, i-m, l, elements, label);
-        }
-      }
-      
-      if(i < elements.length - m){
-        if(elements[(i + m)] != 0  && label[(i + m)] == -1){
-          dfs(m, i+m, l, elements, label);
-        }
-      }
-      
-      return;
-    } */
     
     // Depth first labeling for the nodes
     private static void dfs(int m, int i, int l, int[] elements, int[] label){
@@ -299,32 +253,6 @@ public class ConnectedComponents {
   
   public static class SecondPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
-    /*
-    // Depth first labeling of nodes
-    private static void dfs(int currentLabel, int newLabel,
-      HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
-        Integer key = new Integer(currentLabel);
-        ArrayList<Node> nodes = labelsMap.get(key);
-        
-        // Iterate through each position in the labels list, running dfs
-        // on each of those labels
-        for(int i = 0; i < nodes.size(); i++){
-            nodes.get(i).nodeLabel = newLabel;
-            nodes.get(i).visited = true;
-        }
-        
-         for(int i = 0; i < nodes.size(); i++){
-            Integer nodeNum = new Integer(nodes.get(i).nodeNum);
-            ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
-            for(int j = 0; j < nodesWithNodeNum.size(); j++){
-                if(!(nodesWithNodeNum.get(j).visited)){
-                    dfs(nodesWithNodeNum.get(j).nodeLabel, newLabel, positionsMap, labelsMap);
-                }
-            }
-        }
-    }
-    */
-    
     // Depth first labeling of nodes
     private static void dfs(int currentLabel, int newLabel,
       HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
@@ -457,31 +385,6 @@ public class ConnectedComponents {
   
   public static class ThirdPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
-    /*
-    private static void dfs(int currentLabel, int newLabel,
-      HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
-        Integer key = new Integer(currentLabel);
-        ArrayList<Node> nodes = labelsMap.get(key);
-        
-        // Iterate through each position in the labels list, running dfs
-        // on each of those labels
-        for(int i = 0; i < nodes.size(); i++){
-            nodes.get(i).nodeLabel = newLabel;
-            nodes.get(i).visited = true;
-        }
-        
-         for(int i = 0; i < nodes.size(); i++){
-            Integer nodeNum = new Integer(nodes.get(i).nodeNum);
-            ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
-            for(int j = 0; j < nodesWithNodeNum.size(); j++){
-                if(!(nodesWithNodeNum.get(j).visited)){
-                    dfs(nodesWithNodeNum.get(j).nodeLabel, newLabel, positionsMap, labelsMap);
-                }
-            }
-        }
-    }
-    */
-    
     private static void dfs(int currentLabel, int newLabel,
       HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
         Integer key = new Integer(currentLabel);
@@ -576,13 +479,7 @@ public class ConnectedComponents {
               }
           }
           node = nodes.get(0);
-          /*
-          int gm = g*m;
-          int modulus = nodeNum % gm;
-          boolean isLowerBoundary = nodeNum < m*(m - 1))
-                                    && (modulus >= (g-1)*m)
-                                    && nodeNum
-          */
+
           // First find out if the node is a boundary node
           int offset = groupNum * m * g - m;
           int offsetNodeNum = node.nodeNum - offset;
@@ -655,11 +552,7 @@ public class ConnectedComponents {
   
   public static void main(String[] args) throws Exception {
 
-    // Format for folders on S3:
-    // s3n://(file|folder)
-    // Order of args: m inputPath outputPath
-    
-    /*
+    /* Example input
     cs5300.ConnectedComponents 40 s3n://jasdeep/input/data11.txt s3n://jasdeep/output
     cs5300.ConnectedComponents 20000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
     */
@@ -674,16 +567,6 @@ public class ConnectedComponents {
     String  second = "SecondPassOutput";
     String  third = "ThirdPassOutput";
     String  stats = "StatisticsOutput";
-    //FileInputStream fstream = new FileInputStream(input);
-    //DataInputStream in = new DataInputStream(fstream);
-    //BufferedReader br = new BufferedReader(new InputStreamReader(in));
-    //String strLine;
-    //Read File Line By Line
-    //while ((strLine = br.readLine()) != null)   {
-      // Print the content on the console
-      //System.out.println (strLine);
-    //}
-    System.out.println("-----------------------------------------");
 
     Configuration conf = new Configuration();
     conf.setFloat("wLimit", wLimit);
@@ -698,9 +581,7 @@ public class ConnectedComponents {
     job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(Text.class);        
     job.setMapperClass(FirstPassMap.class);
-    job.setReducerClass(FirstPassReduce.class);        
-    //job.setInputFormatClass(TextInputFormat.class);
-    //job.setOutputFormatClass(TextOutputFormat.class);       
+    job.setReducerClass(FirstPassReduce.class);     
     FileInputFormat.addInputPath(job, new Path(input));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + first));
     job.waitForCompletion(true);
@@ -713,8 +594,6 @@ public class ConnectedComponents {
     job.setOutputValueClass(Text.class);
     job.setMapperClass(SecondPassMap.class);
     job.setReducerClass(SecondPassReduce.class);
-    //job.setInputFormatClass(TextInputFormat.class);
-    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + first));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + second));
     job.waitForCompletion(true);
@@ -727,8 +606,6 @@ public class ConnectedComponents {
     job.setOutputValueClass(IntWritable.class);
     job.setMapperClass(ThirdPassMap.class);
     job.setReducerClass(ThirdPassReduce.class);
-    //job.setInputFormatClass(TextInputFormat.class);
-    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + first));
     FileInputFormat.addInputPath(job, new Path(output + "/" + second));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + third));
@@ -742,8 +619,6 @@ public class ConnectedComponents {
     job.setOutputValueClass(Text.class);
     job.setMapperClass(StatisticsMap.class);
     job.setReducerClass(StatisticsReduce.class);
-    //job.setInputFormatClass(TextInputFormat.class);
-    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + third));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + stats));
     job.waitForCompletion(true); 
