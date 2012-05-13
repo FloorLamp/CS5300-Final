@@ -14,7 +14,7 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.*;
 
 //import org.apache.commons.logging.*;
-
+  
 public class ConnectedComponents {
 
   // Logging
@@ -113,7 +113,6 @@ public class ConnectedComponents {
     
     // Depth first labeling for the nodes
     private static void dfs(int m, int i, int l, int[] elements, int[] label){
-      //label[i] = l;
       
       Stack stack = new Stack();
       stack.push(new Integer(i));
@@ -234,10 +233,7 @@ public class ConnectedComponents {
         
         String[] node = nodeStr.split("\\s+");
         
-        int groupNum = Integer.parseInt(node[0]);
         int nodeNum = Integer.parseInt(node[1]);
-        int nodeLabel = Integer.parseInt(node[2]);
-        int numEdges = Integer.parseInt(node[3]);
         
         int gm = g*m;
         int modulus = nodeNum % gm;
@@ -363,19 +359,11 @@ public class ConnectedComponents {
         int m = context.getConfiguration().getInt("m", 0);
         int g = context.getConfiguration().getInt("g", 0);
         
-        IntWritable one = new IntWritable(1);
-        
         String nodeStr = value.toString();
         
         String[] node = nodeStr.split("\\s+");
         
         int groupNum = Integer.parseInt(node[0]);
-        int nodeNum = Integer.parseInt(node[1]);
-        int nodeLabel = Integer.parseInt(node[2]);
-        int numEdges = Integer.parseInt(node[3]);
-        
-        int gm = g*m;
-        int modulus = nodeNum % gm;
         
         context.write(new IntWritable(groupNum), new Text(node[1] + " " + node[2] + " " + node[3]));
         
@@ -480,7 +468,7 @@ public class ConnectedComponents {
           }
           node = nodes.get(0);
 
-          // First find out if the node is a boundary node
+          // This check makes sure we only output each boundary node once
           int offset = groupNum * m * g - m;
           int offsetNodeNum = node.nodeNum - offset;
           if(!(offsetNodeNum < m && groupNum != 0)){
