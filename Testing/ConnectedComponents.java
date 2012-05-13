@@ -543,9 +543,23 @@ public class ConnectedComponents {
               }
           }
           node = nodes.get(0);
-          context.write(new IntWritable(node.nodeNum), 
+          /*
+          int gm = g*m;
+          int modulus = nodeNum % gm;
+          boolean isLowerBoundary = nodeNum < m*(m - 1))
+                                    && (modulus >= (g-1)*m)
+                                    && nodeNum
+          */
+          // First find out if the node is a boundary node
+          int offset = groupNum * m * g - m;
+          int offsetNodeNum = node.nodeNum - offset;
+          if(!(offsetNodeNum < m && groupNum != 0)){
+
+            context.write(new IntWritable(node.nodeNum), 
                 new Text(Integer.toString(node.nodeLabel) + " " +
                          Integer.toString(edgeCount)));
+          }
+          
       }
     }
   }
@@ -557,7 +571,7 @@ public class ConnectedComponents {
 		  context.write(one, new Text(line));
 		}
 	}
-	
+
   public static class StatisticsReduce extends Reducer<IntWritable, Text, IntWritable, Text> {
 	public void reduce(IntWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
     
@@ -565,18 +579,18 @@ public class ConnectedComponents {
     int g = context.getConfiguration().getInt("g", 0);
     
     IntWritable one = new IntWritable(1);
-		
+
 		Iterator<Text> values = iterableValues.iterator();
-		
+
 		int totalNodes = 0;
 		int totalEdges = 0;
-		HashMap<Long, Integer> components = new HashMap<Long, Integer>();
-					
+		HashMap<Integer, Integer> components = new HashMap<Integer, Integer>();
+
 		while (values.hasNext()) {
 		  String val = values.next().toString();
 			String[] line = val.split("\\s+");
-			Long label = Long.parseLong(line[1]);
-			Long edges = Long.parseLong(line[2]);
+			Integer label = Integer.parseInt(line[1]);
+			Integer edges = Integer.parseInt(line[2]);
 			int node = components.containsKey(label) ? components.get(label) : 0;
 			totalEdges += edges;
 			totalNodes++;
@@ -586,13 +600,13 @@ public class ConnectedComponents {
 		int totalComponents = components.size();
 
 		float sum = 0;
-		for (Long ccSize : components.values()) {
+		for (Integer ccSize : components.values()) {
 			sum += ccSize * ccSize;
 		}
-		
+
 		float averageBurnCount = sum / (m*m);
 		float averageComponentSize = sum / totalNodes;
-		
+
 		String s = "Number of vertices: %s \n" + 
 					"Number of edges: %s \n" + 
 					"Number of distinct connected components: %s \n" + 
@@ -601,7 +615,7 @@ public class ConnectedComponents {
 		System.out.println(s);
 		String stats = String.format(s, Integer.toString(totalNodes), Integer.toString(totalEdges), 
 			Integer.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
-					
+
 		context.write(one, new Text(stats));
 	}
   }
@@ -627,18 +641,6 @@ public class ConnectedComponents {
     String  second = "SecondPassOutput";
     String  third = "ThirdPassOutput";
     String  stats = "StatisticsOutput";
-
-    System.out.println("-----------------------------------------");
-    System.out.println("MAIN METHOD IS BEING CALLED");
-    System.out.println("m: " + m);
-    System.out.println("g: " + g);
-    System.out.println("Input path: " + input);
-    File file = new File(input);
-    System.out.println("Input file size: " + file.length());
-    file = new File("s3n://jasdeep/project.jar");
-    System.out.println("Jar file size (because we know this must exist): " + file.length());
-    System.out.println("-----------------------------------------");
-    //System.out.println("File contents:");
     //FileInputStream fstream = new FileInputStream(input);
     //DataInputStream in = new DataInputStream(fstream);
     //BufferedReader br = new BufferedReader(new InputStreamReader(in));
