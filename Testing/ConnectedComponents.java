@@ -457,6 +457,7 @@ public class ConnectedComponents {
   
   public static class ThirdPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
+    /*
     private static void dfs(int currentLabel, int newLabel,
       HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
         Integer key = new Integer(currentLabel);
@@ -475,6 +476,38 @@ public class ConnectedComponents {
             for(int j = 0; j < nodesWithNodeNum.size(); j++){
                 if(!(nodesWithNodeNum.get(j).visited)){
                     dfs(nodesWithNodeNum.get(j).nodeLabel, newLabel, positionsMap, labelsMap);
+                }
+            }
+        }
+    }
+    */
+    
+    private static void dfs(int currentLabel, int newLabel,
+      HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
+        Integer key = new Integer(currentLabel);
+        
+        Stack stack = new Stack();
+        stack.push(key);
+        
+        while(!stack.empty()){
+        
+            key = ((Integer)stack.pop());
+            ArrayList<Node> nodes = labelsMap.get(key);
+            
+            // Iterate through each position in the labels list, running dfs
+            // on each of those labels
+            for(int i = 0; i < nodes.size(); i++){
+                nodes.get(i).nodeLabel = newLabel;
+                nodes.get(i).visited = true;
+            }
+            
+             for(int i = 0; i < nodes.size(); i++){
+                Integer nodeNum = new Integer(nodes.get(i).nodeNum);
+                ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
+                for(int j = 0; j < nodesWithNodeNum.size(); j++){
+                    if(!(nodesWithNodeNum.get(j).visited)){
+                        stack.push(new Integer(nodesWithNodeNum.get(j).nodeLabel));
+                    }
                 }
             }
         }
