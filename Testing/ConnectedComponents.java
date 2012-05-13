@@ -532,31 +532,25 @@ public class ConnectedComponents {
 		
 		Iterator<Text> values = iterableValues.iterator();
 		
+		int totalNodes = 0;
 		int totalEdges = 0;
-		HashMap<Integer, ArrayList<Integer>> components = new HashMap<Integer, ArrayList<Integer>>();
-		HashSet<Integer> uniqueNodes = new HashSet<Integer>();
+		HashMap<Long, Integer> components = new HashMap<Long, Integer>();
 					
 		while (values.hasNext()) {
 		  String val = values.next().toString();
 			String[] line = val.split("\\s+");
-			Integer node = Integer.parseInt(line[0]);
-			Integer label = Integer.parseInt(line[1]);
-			Integer edges = Integer.parseInt(line[2]);
-			if (!uniqueNodes.contains(node)) {
-				uniqueNodes.add(node);
-				ArrayList<Integer> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Integer>();
-				nodes.add(node);
-				totalEdges += edges;
-				components.put(label, nodes);
-			}
+			Long label = Long.parseLong(line[1]);
+			Long edges = Long.parseLong(line[2]);
+			int node = components.containsKey(label) ? components.get(label) : 0;
+			totalEdges += edges;
+			totalNodes++;
+			components.put(label, node + 1);
 		}
 		totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
-		int totalNodes = uniqueNodes.size();
 		int totalComponents = components.size();
 
 		float sum = 0;
-		for (ArrayList<Integer> componentNodes : components.values()) {
-			int ccSize = componentNodes.size();
+		for (Long ccSize : components.values()) {
 			sum += ccSize * ccSize;
 		}
 		
