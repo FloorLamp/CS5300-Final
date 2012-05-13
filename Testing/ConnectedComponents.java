@@ -22,13 +22,13 @@ public class ConnectedComponents {
   //static Log reduceLog = LogFactory.getLog(FirstPassReduce.class);  
 
   // g^2 = m is optimal
-  static long computeG(long val) {
+  static int computeG(int val) {
 
-      long estG = (long)(Math.pow((double)val, 1.5));
-      long max = (long)(Math.ceil(Math.sqrt((double)val)));
+      int estG = (int)(Math.pow((double)val, 1.5));
+      int max = (int)(Math.ceil(Math.sqrt((double)val)));
 
-      List<Long> factors  = new ArrayList<Long>();
-      for(long i=1; i <= max; i++)
+      List<Integer> factors  = new ArrayList<Integer>();
+      for(int i=1; i <= max; i++)
       {
           if(val % i == 0)
           {
@@ -40,13 +40,13 @@ public class ConnectedComponents {
   }
   
   public static class Node{
-    public long groupNum;
-    public long nodeNum;
-    public long nodeLabel;
-    public long numEdges;
+    public int groupNum;
+    public int nodeNum;
+    public int nodeLabel;
+    public int numEdges;
     public boolean visited;
     
-    public Node(long gn, long nn, long nl, long ne){
+    public Node(int gn, int nn, int nl, int ne){
       groupNum = gn;
       nodeNum = nn;
       nodeLabel = nl;
@@ -54,9 +54,6 @@ public class ConnectedComponents {
       visited = false;
     }
   }
-
-  private static long m;
-  private static long g;
   
   // compute filter parameters for netid jsh263
   private static final float fromNetID = 0.362f;
@@ -64,20 +61,20 @@ public class ConnectedComponents {
   private static final float wMin = 0.4f * fromNetID;
   private static final float wLimit = wMin + desiredDensity;
 
-  public static class FirstPassMap extends Mapper<LongWritable, Text, LongWritable, LongWritable> {
+  public static class FirstPassMap extends Mapper<LongWritable, Text, IntWritable, IntWritable> {
       
       private Text word = new Text();
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         
-        long m = context.getConfiguration().getLong("m", 0);
-        long g = context.getConfiguration().getLong("g", 0);
-        double wMin = context.getConfiguration().getFloat("wMin", 0);
-        double wLimit = context.getConfiguration().getFloat("wLimit", 0);
+        int m = context.getConfiguration().getInt("m", 0);
+        int g = context.getConfiguration().getInt("g", 0);
+        float wMin = context.getConfiguration().getFloat("wMin", 0);
+        float wLimit = context.getConfiguration().getFloat("wLimit", 0);
         
-        double val = Double.parseDouble(value.toString());
+        float val = Float.parseFloat(value.toString());
         
-        long lineNum = key.get() / 12 + 1;
+        int lineNum = (int)(key.get() / 12 + 1);
         /*
         System.out.println("-----------------------------------------");
         System.out.println("FIRST MAP CALLED");
@@ -92,9 +89,9 @@ public class ConnectedComponents {
           return;
         }
         
-        long x, y;
+        int x, y;
         
-        long sqrt = (long) Math.ceil(Math.sqrt((double) lineNum));
+        int sqrt = (int) Math.ceil(Math.sqrt((double) lineNum));
         
         // Calculate x/y coordinates of this point
         if(sqrt*sqrt == lineNum){
@@ -110,10 +107,10 @@ public class ConnectedComponents {
           }
         }
 
-        context.write(new LongWritable(x/g), new LongWritable(x*m + y));
+        context.write(new IntWritable(x/g), new IntWritable(x*m + y));
         // If this is a boundary point
         if(x != (m - 1) && (x % g) == (g - 1)){
-          context.write(new LongWritable(x/g + 1), new LongWritable(x*m + y));
+          context.write(new IntWritable(x/g + 1), new IntWritable(x*m + y));
         }
         /*
         //mapLog.info("-----------------------------------------");
@@ -127,31 +124,31 @@ public class ConnectedComponents {
       }
   }
 	
-    public static class FirstPassReduce extends Reducer<LongWritable,LongWritable,LongWritable,Text> {
+    public static class FirstPassReduce extends Reducer<IntWritable,IntWritable,IntWritable,Text> {
     
     // Depth first labeling for the nodes
-    private static void dfs(long m, long i, long l, long[] elements, long[] label){
-      label[(int)i] = l;
+    private static void dfs(int m, int i, int l, int[] elements, int[] label){
+      label[i] = l;
       if(i % m != (m - 1) && i != elements.length){
-        if(elements[(int)(i + 1)] != 0 && label[(int)(i + 1)] == -1){
+        if(elements[(i + 1)] != 0 && label[(i + 1)] == -1){
           dfs(m, i+1, l, elements, label);
         }
       }
       
       if(i % m != 0 && i != 0){
-        if(elements[(int)(i - 1)] != 0  && label[(int)(i - 1)] == -1){
+        if(elements[(i - 1)] != 0  && label[(i - 1)] == -1){
           dfs(m, i-1, l, elements, label);
         }
       }
       
       if(i >= m){
-        if(elements[(int)(i - m)] != 0  && label[(int)(i - m)] == -1){
+        if(elements[(i - m)] != 0  && label[(i - m)] == -1){
           dfs(m, i-m, l, elements, label);
         }
       }
       
       if(i < elements.length - m){
-        if(elements[(int)(i + m)] != 0  && label[(int)(i + m)] == -1){
+        if(elements[(i + m)] != 0  && label[(i + m)] == -1){
           dfs(m, i+m, l, elements, label);
         }
       }
@@ -160,101 +157,99 @@ public class ConnectedComponents {
     }
     
     // count edges for a node
-    private static void countEdges(long g,  long m, long i, long[] elements, long[] edgeCount){
+    private static void countEdges(int g,  int m, int i, int[] elements, int[] edgeCount){
     
       if(!(i < m && elements.length != g*m) ){ // So that we do not double count boundary edges
                                                // Don't count up and down edges if in
                                                //    the first column for all groups
                                                //    except group 0
         if(i % m != (m - 1) && i != elements.length){
-          if(elements[(int)(i + 1)] != 0){
-            edgeCount[(int)i] += 1;
+          if(elements[(i + 1)] != 0){
+            edgeCount[i] += 1;
           }
         }
         
         if(i % m != 0 && i != 0){
-          if(elements[(int)(i - 1)] != 0){
-            edgeCount[(int)i] += 1;
+          if(elements[(i - 1)] != 0){
+            edgeCount[i] += 1;
           }
         }
       }
       if(i >= m){
-        if(elements[(int)(i - m)] != 0){
-          edgeCount[(int)i] += 1;
+        if(elements[(i - m)] != 0){
+          edgeCount[i] += 1;
         }
       }
       
       if(i < elements.length - m){
-        if(elements[(int)(i + m)] != 0){
-          edgeCount[(int)i] += 1;
+        if(elements[(i + m)] != 0){
+          edgeCount[i] += 1;
         }
       }
       
       return;
     }
     
-    public void reduce(LongWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+    public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
       
-      long m = context.getConfiguration().getLong("m", 0);
-      long g = context.getConfiguration().getLong("g", 0);
+      int m = context.getConfiguration().getInt("m", 0);
+      int g = context.getConfiguration().getInt("g", 0);
       
-      long groupNum = key.get();
+      int groupNum = key.get();
       // Size of first group (g = 0) is g*m, otherwise (1 + g) * m
-      long maxElements = (g + 1)*m;
-      long offset = groupNum * m * g - m;
+      int maxElements = (g + 1)*m;
+      int offset = groupNum * m * g - m;
       if(groupNum == 0){ maxElements -= m; offset += m;}
       
-      long[] elements = new long[(int)maxElements];
-      long[] label = new long[(int)maxElements];
-      long[] edgeCount = new long[(int)maxElements];
-      Arrays.fill(label, (long)(-1));
+      int[] elements = new int[maxElements];
+      int[] label = new int[maxElements];
+      int[] edgeCount = new int[maxElements];
+      Arrays.fill(label, (int)(-1));
       
-      for(LongWritable val : values) {
-        int index = (int)(val.get() - offset);
+      for(IntWritable val : values) {
+        int index = val.get() - offset;
         elements[index] = 1;
       }
-      long elementCount = 0;
-      for(long i = 0; i < maxElements; i++){
-        if(elements[(int)i] == 1 && label[(int)i] == -1){
+      int elementCount = 0;
+      for(int i = 0; i < maxElements; i++){
+        if(elements[i] == 1 && label[i] == -1){
           // Perform a DFS 
           dfs(m, i, i, elements, label);
         }
-        if(elements[(int)i] == 1){
+        if(elements[i] == 1){
           elementCount++;
           // Count the number of edges for a node
           countEdges(g, m, i, elements, edgeCount);
           // Emit if node exists 
-          context.write(new LongWritable(groupNum),
-              new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset)
-                        + " " + Long.toString(edgeCount[(int)i]))); 
+          context.write(new IntWritable(groupNum),
+              new Text(Integer.toString(i+offset) + " " + Integer.toString(label[i] + offset)
+                        + " " + Integer.toString(edgeCount[i]))); 
         }
       }
       System.out.println(elementCount);
     }
   }
   	
-  public static class SecondPassMap extends Mapper<LongWritable, Text, LongWritable, Text> { 
-      
-      private static long countEmissions = 0;
+  public static class SecondPassMap extends Mapper<LongWritable, Text, IntWritable, Text> { 
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         
-        long m = context.getConfiguration().getLong("m", 0);
-        long g = context.getConfiguration().getLong("g", 0);
+        int m = context.getConfiguration().getInt("m", 0);
+        int g = context.getConfiguration().getInt("g", 0);
         
-        LongWritable one = new LongWritable(1);
+        IntWritable one = new IntWritable(1);
         
         String nodeStr = value.toString();
         
         String[] node = nodeStr.split("\\s+");
         
-        long groupNum = Long.parseLong(node[0]);
-        long nodeNum = Long.parseLong(node[1]);
-        long nodeLabel = Long.parseLong(node[2]);
-        long numEdges = Long.parseLong(node[3]);
+        int groupNum = Integer.parseInt(node[0]);
+        int nodeNum = Integer.parseInt(node[1]);
+        int nodeLabel = Integer.parseInt(node[2]);
+        int numEdges = Integer.parseInt(node[3]);
         
-        long gm = g*m;
-        long modulus = nodeNum % gm;
+        int gm = g*m;
+        int modulus = nodeNum % gm;
         
         // First find out if the node is a boundary node
         if( (nodeNum < m*(m - 1)) && (modulus >= (g-1)*m) ){
@@ -265,12 +260,12 @@ public class ConnectedComponents {
       }
   }
   
-  public static class SecondPassReduce extends Reducer<LongWritable,Text,LongWritable,Text> {
+  public static class SecondPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
     // Depth first labeling of nodes
-    private static void dfs(long currentLabel, long newLabel,
-      HashMap<Long, ArrayList<Node>> positionsMap, HashMap<Long, ArrayList<Node>> labelsMap){
-        Long key = new Long(currentLabel);
+    private static void dfs(int currentLabel, int newLabel,
+      HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
+        Integer key = new Integer(currentLabel);
         ArrayList<Node> nodes = labelsMap.get(key);
         
         // Iterate through each position in the labels list, running dfs
@@ -281,7 +276,7 @@ public class ConnectedComponents {
         }
         
          for(int i = 0; i < nodes.size(); i++){
-            Long nodeNum = new Long(nodes.get(i).nodeNum);
+            Integer nodeNum = new Integer(nodes.get(i).nodeNum);
             ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
             for(int j = 0; j < nodesWithNodeNum.size(); j++){
                 if(!(nodesWithNodeNum.get(j).visited)){
@@ -291,14 +286,14 @@ public class ConnectedComponents {
         }
     }
     
-    public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       
-      long m = context.getConfiguration().getLong("m", 0);
-      long g = context.getConfiguration().getLong("g", 0);
+      int m = context.getConfiguration().getInt("m", 0);
+      int g = context.getConfiguration().getInt("g", 0);
       
       // Hashmaps with an appropriate initial capacity
-      HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
-      HashMap<Long, ArrayList<Node>> labelsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
+      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
+      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
       
       String nodeStr;
       String[] nodeInfo;
@@ -309,12 +304,12 @@ public class ConnectedComponents {
         
         nodeInfo = nodeStr.split("\\s+");
         
-        node = new Node(Long.parseLong(nodeInfo[0]),
-                             Long.parseLong(nodeInfo[1]),
-                             Long.parseLong(nodeInfo[2]),
-                             Long.parseLong(nodeInfo[3]));
-        Long nn = new Long(node.nodeNum);
-        Long nl = new Long(node.nodeLabel);
+        node = new Node(Integer.parseInt(nodeInfo[0]),
+                             Integer.parseInt(nodeInfo[1]),
+                             Integer.parseInt(nodeInfo[2]),
+                             Integer.parseInt(nodeInfo[3]));
+        Integer nn = new Integer(node.nodeNum);
+        Integer nl = new Integer(node.nodeLabel);
         
         if( positionsMap.get(nn) == null ){
           positionsMap.put(nn, new ArrayList<Node>());
@@ -327,73 +322,71 @@ public class ConnectedComponents {
         labelsMap.get(nl).add(node);
       }
       
-      List<Long> positions=new ArrayList<Long>(positionsMap.keySet());
+      List<Integer> positions=new ArrayList<Integer>(positionsMap.keySet());
       Collections.sort(positions);
-      List<Long> labels=new ArrayList<Long>(labelsMap.keySet());
+      List<Integer> labels=new ArrayList<Integer>(labelsMap.keySet());
       Collections.sort(labels);
       
       // Loop through labels, performing DFS where necessary
-      for(long i = 0; (int)i < labels.size(); i++){
-          Long label = labels.get((int)i);
+      for(int i = 0; i < labels.size(); i++){
+          Integer label = labels.get(i);
           if( !(labelsMap.get(label).get(0).visited) ){
-              dfs(label.longValue(), label.longValue(), positionsMap, labelsMap);
+              dfs(label.intValue(), label.intValue(), positionsMap, labelsMap);
           }
       }
       
       // Loop through positions, outputting what we've found
-      for(long k = 0; (int)k < positions.size(); k++){
-          Long position = positions.get((int)k);
+      for(int k = 0; k < positions.size(); k++){
+          Integer position = positions.get(k);
           ArrayList<Node> nodes = positionsMap.get(position);
           // Get edge counts for each node
-          long totalEdges = 0;
+          int totalEdges = 0;
           for(int l = 0; l < nodes.size(); l++){
               totalEdges += nodes.get(l).numEdges;
           }
           
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
-              context.write(new LongWritable(node.groupNum), 
-                new Text(Long.toString(node.nodeNum) + " " + Long.toString(node.nodeLabel) + 
-                         " " + Long.toString(totalEdges))); 
+              context.write(new IntWritable(node.groupNum), 
+                new Text(Integer.toString(node.nodeNum) + " " + Integer.toString(node.nodeLabel) + 
+                         " " + Integer.toString(totalEdges))); 
           }
       }
     }
   }
   
-  public static class ThirdPassMap extends Mapper<LongWritable, Text, LongWritable, Text> { 
-      
-      private static long countEmissions = 0;
+  public static class ThirdPassMap extends Mapper<LongWritable, Text, IntWritable, Text> { 
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         
-        long m = context.getConfiguration().getLong("m", 0);
-        long g = context.getConfiguration().getLong("g", 0);
+        int m = context.getConfiguration().getInt("m", 0);
+        int g = context.getConfiguration().getInt("g", 0);
         
-        LongWritable one = new LongWritable(1);
+        IntWritable one = new IntWritable(1);
         
         String nodeStr = value.toString();
         
         String[] node = nodeStr.split("\\s+");
         
-        long groupNum = Long.parseLong(node[0]);
-        long nodeNum = Long.parseLong(node[1]);
-        long nodeLabel = Long.parseLong(node[2]);
-        long numEdges = Long.parseLong(node[3]);
+        int groupNum = Integer.parseInt(node[0]);
+        int nodeNum = Integer.parseInt(node[1]);
+        int nodeLabel = Integer.parseInt(node[2]);
+        int numEdges = Integer.parseInt(node[3]);
         
-        long gm = g*m;
-        long modulus = nodeNum % gm;
+        int gm = g*m;
+        int modulus = nodeNum % gm;
         
-        context.write(new LongWritable(groupNum), new Text(node[1] + " " + node[2] + " " + node[3]));
+        context.write(new IntWritable(groupNum), new Text(node[1] + " " + node[2] + " " + node[3]));
         
         return;
       }
   }
   
-  public static class ThirdPassReduce extends Reducer<LongWritable,Text,LongWritable,Text> {
+  public static class ThirdPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
-    private static void dfs(long currentLabel, long newLabel,
-      HashMap<Long, ArrayList<Node>> positionsMap, HashMap<Long, ArrayList<Node>> labelsMap){
-        Long key = new Long(currentLabel);
+    private static void dfs(int currentLabel, int newLabel,
+      HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
+        Integer key = new Integer(currentLabel);
         ArrayList<Node> nodes = labelsMap.get(key);
         
         // Iterate through each position in the labels list, running dfs
@@ -404,7 +397,7 @@ public class ConnectedComponents {
         }
         
          for(int i = 0; i < nodes.size(); i++){
-            Long nodeNum = new Long(nodes.get(i).nodeNum);
+            Integer nodeNum = new Integer(nodes.get(i).nodeNum);
             ArrayList<Node> nodesWithNodeNum = positionsMap.get(nodeNum);
             for(int j = 0; j < nodesWithNodeNum.size(); j++){
                 if(!(nodesWithNodeNum.get(j).visited)){
@@ -414,20 +407,20 @@ public class ConnectedComponents {
         }
     }
     
-    public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+    public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       
-      long m = context.getConfiguration().getLong("m", 0);
-      long g = context.getConfiguration().getLong("g", 0);
+      int m = context.getConfiguration().getInt("m", 0);
+      int g = context.getConfiguration().getInt("g", 0);
       
       // Hashmaps with an appropriate initial capacity
-      HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
-      HashMap<Long, ArrayList<Node>> labelsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
+      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>((m*m/g));
+      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>((m*m/g));
       
       String nodeStr;
       String[] nodeInfo;
       Node node;
       
-      long groupNum = key.get();
+      int groupNum = key.get();
       
       for(Text val : values) {
         nodeStr = val.toString();
@@ -435,11 +428,11 @@ public class ConnectedComponents {
         nodeInfo = nodeStr.split("\\s+");
         
         node = new Node(groupNum,
-                             Long.parseLong(nodeInfo[0]),
-                             Long.parseLong(nodeInfo[1]),
-                             Long.parseLong(nodeInfo[2]));
-        Long nn = new Long(node.nodeNum);
-        Long nl = new Long(node.nodeLabel);
+                             Integer.parseInt(nodeInfo[0]),
+                             Integer.parseInt(nodeInfo[1]),
+                             Integer.parseInt(nodeInfo[2]));
+        int nn = new Integer(node.nodeNum);
+        int nl = new Integer(node.nodeLabel);
         
         if( positionsMap.get(nn) == null ){
           positionsMap.put(nn, new ArrayList<Node>());
@@ -452,24 +445,24 @@ public class ConnectedComponents {
         labelsMap.get(nl).add(node);
       }
       
-      List<Long> positions=new ArrayList<Long>(positionsMap.keySet());
+      List<Integer> positions=new ArrayList<Integer>(positionsMap.keySet());
       Collections.sort(positions);
-      List<Long> labels=new ArrayList<Long>(labelsMap.keySet());
+      List<Integer> labels=new ArrayList<Integer>(labelsMap.keySet());
       Collections.sort(labels);
       
       // Loop through labels, performing DFS where necessary
-      for(long i = 0; (int)i < labels.size(); i++){
-          Long label = labels.get((int)i);
+      for(int i = 0; i < labels.size(); i++){
+          Integer label = labels.get(i);
           if( !(labelsMap.get(label).get(0).visited) ){
-              dfs(label.longValue(), label.longValue(), positionsMap, labelsMap);
+              dfs(label.intValue(), label.intValue(), positionsMap, labelsMap);
           }
       }
       
       // Loop through positions, outputting what we've found
-      for(long k = 0; (int)k < positions.size(); k++){
-          Long position = positions.get((int)k);
+      for(int k = 0; k < positions.size(); k++){
+          Integer position = positions.get(k);
           ArrayList<Node> nodes = positionsMap.get(position);
-          long edgeCount = 0;
+          int edgeCount = 0;
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
               if(node.numEdges > edgeCount){
@@ -477,58 +470,55 @@ public class ConnectedComponents {
               }
           }
           node = nodes.get(0);
-          context.write(new LongWritable(node.nodeNum), 
-                new Text(Long.toString(node.nodeLabel) + " " +
-                         Long.toString(edgeCount)));
+          context.write(new IntWritable(node.nodeNum), 
+                new Text(Integer.toString(node.nodeLabel) + " " +
+                         Integer.toString(edgeCount)));
       }
     }
   }
   
-  public static class StatisticsMap extends Mapper<LongWritable, Text, LongWritable, Text> {
-	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-	  long m = context.getConfiguration().getLong("m", 0);
-    long g = context.getConfiguration().getLong("g", 0);
-	
-    	LongWritable one = new LongWritable(1);
-		String line = value.toString();
-		context.write(one, new Text(line));
+  public static class StatisticsMap extends Mapper<LongWritable, Text, IntWritable, Text> {
+	  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {	
+      IntWritable one = new IntWritable(1);
+		  String line = value.toString();
+		  context.write(one, new Text(line));
 		}
 	}
 	
-  public static class StatisticsReduce extends Reducer<LongWritable, Text, LongWritable, Text> {
-	public void reduce(LongWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
+  public static class StatisticsReduce extends Reducer<IntWritable, Text, IntWritable, Text> {
+	public void reduce(IntWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
     
-    long m = context.getConfiguration().getLong("m", 0);
-    long g = context.getConfiguration().getLong("g", 0);
+    int m = context.getConfiguration().getInt("m", 0);
+    int g = context.getConfiguration().getInt("g", 0);
     
-    LongWritable one = new LongWritable(1);
+    IntWritable one = new IntWritable(1);
 		
 		Iterator<Text> values = iterableValues.iterator();
 		
-		long totalEdges = 0;
-		HashMap<Long, ArrayList<Long>> components = new HashMap<Long, ArrayList<Long>>();
-		HashSet<Long> uniqueNodes = new HashSet<Long>();
+		int totalEdges = 0;
+		HashMap<Integer, ArrayList<Integer>> components = new HashMap<Integer, ArrayList<Integer>>();
+		HashSet<Integer> uniqueNodes = new HashSet<Integer>();
 					
 		while (values.hasNext()) {
 		  String val = values.next().toString();
 			String[] line = val.split("\\s+");
-			Long node = Long.parseLong(line[0]);
-			Long label = Long.parseLong(line[1]);
-			Long edges = Long.parseLong(line[2]);
+			Integer node = Integer.parseInt(line[0]);
+			Integer label = Integer.parseInt(line[1]);
+			Integer edges = Integer.parseInt(line[2]);
 			if (!uniqueNodes.contains(node)) {
 				uniqueNodes.add(node);
-				ArrayList<Long> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Long>();
+				ArrayList<Integer> nodes = (components.containsKey(label)) ? components.get(label) : new ArrayList<Integer>();
 				nodes.add(node);
 				totalEdges += edges;
 				components.put(label, nodes);
 			}
 		}
 		totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
-		long totalNodes = uniqueNodes.size();
-		long totalComponents = components.size();
+		int totalNodes = uniqueNodes.size();
+		int totalComponents = components.size();
 
 		float sum = 0;
-		for (ArrayList<Long> componentNodes : components.values()) {
+		for (ArrayList<Integer> componentNodes : components.values()) {
 			int ccSize = componentNodes.size();
 			sum += ccSize * ccSize;
 		}
@@ -542,8 +532,8 @@ public class ConnectedComponents {
 					"Average size of connected components: %s \n" + 
 					"Average burn count: %s \n";
 		System.out.println(s);
-		String stats = String.format(s, Long.toString(totalNodes), Long.toString(totalEdges), 
-			Long.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
+		String stats = String.format(s, Integer.toString(totalNodes), Integer.toString(totalEdges), 
+			Integer.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
 					
 		context.write(one, new Text(stats));
 	}
@@ -560,8 +550,8 @@ public class ConnectedComponents {
     cs5300.ConnectedComponents 20000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
     */
 
-    m = Long.parseLong(args[0]);
-    g = computeG(m);
+    int m = Integer.parseInt(args[0]);
+    int g = computeG(m);
 
     String input = args[1];
     String output = args[2];
@@ -596,14 +586,14 @@ public class ConnectedComponents {
     Configuration conf = new Configuration();
     conf.setFloat("wLimit", wLimit);
     conf.setFloat("wMin", wMin);
-    conf.setLong("m", m);
-    conf.setLong("g", g);
+    conf.setInt("m", m);
+    conf.setInt("g", g);
         
     Job job = new Job(conf, "firstpass");
     job.setJarByClass(ConnectedComponents.class);
-    job.setMapOutputKeyClass(LongWritable.class);
-    job.setMapOutputValueClass(LongWritable.class);
-    job.setOutputKeyClass(LongWritable.class);
+    job.setMapOutputKeyClass(IntWritable.class);
+    job.setMapOutputValueClass(IntWritable.class);
+    job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(Text.class);        
     job.setMapperClass(FirstPassMap.class);
     job.setReducerClass(FirstPassReduce.class);        
@@ -615,9 +605,9 @@ public class ConnectedComponents {
     
     job = new Job(conf, "secondpass");
     job.setJarByClass(ConnectedComponents.class);
-    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputKeyClass(IntWritable.class);
     job.setMapOutputValueClass(Text.class);
-    job.setOutputKeyClass(LongWritable.class);
+    job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(Text.class);
     job.setMapperClass(SecondPassMap.class);
     job.setReducerClass(SecondPassReduce.class);
@@ -629,10 +619,10 @@ public class ConnectedComponents {
     
     job = new Job(conf, "thirdpass");
     job.setJarByClass(ConnectedComponents.class);
-    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputKeyClass(IntWritable.class);
     job.setMapOutputValueClass(Text.class);
-    job.setOutputKeyClass(LongWritable.class);
-    job.setOutputValueClass(LongWritable.class);
+    job.setOutputKeyClass(IntWritable.class);
+    job.setOutputValueClass(IntWritable.class);
     job.setMapperClass(ThirdPassMap.class);
     job.setReducerClass(ThirdPassReduce.class);
     //job.setInputFormatClass(TextInputFormat.class);
@@ -644,9 +634,9 @@ public class ConnectedComponents {
     
     job = new Job(conf, "statistics");
     job.setJarByClass(ConnectedComponents.class);
-    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputKeyClass(IntWritable.class);
     job.setMapOutputValueClass(Text.class);
-    job.setOutputKeyClass(LongWritable.class);
+    job.setOutputKeyClass(IntWritable.class);
     job.setOutputValueClass(Text.class);
     job.setMapperClass(StatisticsMap.class);
     job.setReducerClass(StatisticsReduce.class);
