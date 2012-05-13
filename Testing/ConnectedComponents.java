@@ -78,7 +78,7 @@ public class ConnectedComponents {
         double val = Double.parseDouble(value.toString());
         
         long lineNum = key.get() / 12 + 1;
-        
+        /*
         System.out.println("-----------------------------------------");
         System.out.println("FIRST MAP CALLED");
         System.out.println("Text seen is: " + value.toString());
@@ -86,7 +86,7 @@ public class ConnectedComponents {
         System.out.println("g: " + g);
         System.out.println("Line number: " + lineNum);
         System.out.println("-----------------------------------------");
-        
+        */
         // Make sure m is actually going to be a point in our graph
         if(lineNum > m*m || val < wMin || val >= wLimit){
           return;
@@ -115,14 +115,14 @@ public class ConnectedComponents {
         if(x != (m - 1) && (x % g) == (g - 1)){
           context.write(new LongWritable(x/g + 1), new LongWritable(x*m + y));
         }
-        
+        /*
         //mapLog.info("-----------------------------------------");
         //mapLog.info("MAP IS WORKING");
         //mapLog.info("-----------------------------------------");
         System.out.println("-----------------------------------------");
         System.out.println("FIRST MAP COMPLETED SINGLE MAPPING");
         System.out.println("-----------------------------------------");
-        
+        */
         return;
       }
   }
@@ -160,7 +160,7 @@ public class ConnectedComponents {
     }
     
     // count edges for a node
-    private static void countEdges(long m, long i, long[] elements, long[] edgeCount){
+    private static void countEdges(long g,  long m, long i, long[] elements, long[] edgeCount){
     
       if(!(i < m && elements.length != g*m) ){ // So that we do not double count boundary edges
                                                // Don't count up and down edges if in
@@ -222,7 +222,7 @@ public class ConnectedComponents {
         if(elements[(int)i] == 1){
           elementCount++;
           // Count the number of edges for a node
-          countEdges(m, i, elements, edgeCount);
+          countEdges(g, m, i, elements, edgeCount);
           // Emit if node exists 
           context.write(new LongWritable(groupNum),
               new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset)
