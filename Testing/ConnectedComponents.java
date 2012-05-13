@@ -126,6 +126,7 @@ public class ConnectedComponents {
 	
     public static class FirstPassReduce extends Reducer<IntWritable,IntWritable,IntWritable,Text> {
     
+    /*
     // Depth first labeling for the nodes
     private static void dfs(int m, int i, int l, int[] elements, int[] label){
       label[i] = l;
@@ -151,6 +152,42 @@ public class ConnectedComponents {
         if(elements[(i + m)] != 0  && label[(i + m)] == -1){
           dfs(m, i+m, l, elements, label);
         }
+      }
+      
+      return;
+    } */
+    
+    // Depth first labeling for the nodes
+    private static void dfs(int m, int i, int l, int[] elements, int[] label){
+      //label[i] = l;
+      
+      Stack stack = new Stack();
+      stack.push(new Integer(i));
+      
+      while(!stack.empty()){
+          i = ((Integer)stack.pop()).intValue();
+          label[i] = l;
+          
+          if(i % m != (m - 1) && i != elements.length){
+            if(elements[(i + 1)] != 0 && label[(i + 1)] == -1){
+              stack.push(new Integer(i+1));
+            }
+          }
+          if(i % m != 0 && i != 0){
+            if(elements[(i - 1)] != 0  && label[(i - 1)] == -1){
+              stack.push(new Integer(i-1));
+            }
+          }
+          if(i >= m){
+            if(elements[(i - m)] != 0  && label[(i - m)] == -1){
+              stack.push(new Integer(i-m));
+            }
+          }
+          if(i < elements.length - m){
+            if(elements[(i + m)] != 0  && label[(i + m)] == -1){
+              stack.push(new Integer(i+m));
+            }
+          }
       }
       
       return;
