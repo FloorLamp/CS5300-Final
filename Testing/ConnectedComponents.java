@@ -1,6 +1,6 @@
 package cs5300;
 	
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import org.apache.hadoop.fs.Path;
@@ -18,16 +18,17 @@ import org.apache.hadoop.util.*;
 public class ConnectedComponents {
 
   // Logging
-  //static Log mapLog = LogFactory.getLog(Map.class);
-  //static Log reduceLog = LogFactory.getLog(Reduce.class);  
+  //static Log mapLog = LogFactory.getLog(FirstPassMap.class);
+  //static Log reduceLog = LogFactory.getLog(FirstPassReduce.class);  
 
   // g^2 = m is optimal
   static long computeG(long val) {
 
       long estG = (long)(Math.pow((double)val, 1.5));
+      long max = (long)(Math.ceil(Math.sqrt((double)val)));
 
-      List<Integer> factors  = new ArrayList<Integer>();
-      for(int i=1; i <= val/2; i++)
+      List<Long> factors  = new ArrayList<Long>();
+      for(long i=1; i <= max; i++)
       {
           if(val % i == 0)
           {
@@ -58,10 +59,10 @@ public class ConnectedComponents {
   private static long g;
   
   // compute filter parameters for netid jsh263
-  private static final double fromNetID = 0.362;
-  private static final double desiredDensity = 0.59;
-  private static final double wMin = 0.4 * fromNetID;
-  private static final double wLimit = wMin + desiredDensity;
+  private static final float fromNetID = 0.362f;
+  private static final float desiredDensity = 0.59f;
+  private static final float wMin = 0.4f * fromNetID;
+  private static final float wLimit = wMin + desiredDensity;
 
   public static class FirstPassMap extends Mapper<LongWritable, Text, LongWritable, LongWritable> {
       
@@ -69,9 +70,22 @@ public class ConnectedComponents {
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         
+        long m = context.getConfiguration().getLong("m", 0);
+        long g = context.getConfiguration().getLong("g", 0);
+        double wMin = context.getConfiguration().getFloat("wMin", 0);
+        double wLimit = context.getConfiguration().getFloat("wLimit", 0);
+        
         double val = Double.parseDouble(value.toString());
         
         long lineNum = key.get() / 12 + 1;
+        
+        System.out.println("-----------------------------------------");
+        System.out.println("FIRST MAP CALLED");
+        System.out.println("Text seen is: " + value.toString());
+        System.out.println("m: " + m);
+        System.out.println("g: " + g);
+        System.out.println("Line number: " + lineNum);
+        System.out.println("-----------------------------------------");
         
         // Make sure m is actually going to be a point in our graph
         if(lineNum > m*m || val < wMin || val >= wLimit){
@@ -102,6 +116,13 @@ public class ConnectedComponents {
           context.write(new LongWritable(x/g + 1), new LongWritable(x*m + y));
         }
         
+        //mapLog.info("-----------------------------------------");
+        //mapLog.info("MAP IS WORKING");
+        //mapLog.info("-----------------------------------------");
+        System.out.println("-----------------------------------------");
+        System.out.println("FIRST MAP COMPLETED SINGLE MAPPING");
+        System.out.println("-----------------------------------------");
+        
         return;
       }
   }
@@ -109,29 +130,29 @@ public class ConnectedComponents {
     public static class FirstPassReduce extends Reducer<LongWritable,LongWritable,LongWritable,Text> {
     
     // Depth first labeling for the nodes
-    private static void dfs(long i, long l, long[] elements, long[] label){
+    private static void dfs(long m, long i, long l, long[] elements, long[] label){
       label[(int)i] = l;
       if(i % m != (m - 1) && i != elements.length){
         if(elements[(int)(i + 1)] != 0 && label[(int)(i + 1)] == -1){
-          dfs(i+1, l, elements, label);
+          dfs(m, i+1, l, elements, label);
         }
       }
       
       if(i % m != 0 && i != 0){
         if(elements[(int)(i - 1)] != 0  && label[(int)(i - 1)] == -1){
-          dfs(i-1, l, elements, label);
+          dfs(m, i-1, l, elements, label);
         }
       }
       
       if(i >= m){
         if(elements[(int)(i - m)] != 0  && label[(int)(i - m)] == -1){
-          dfs(i-m, l, elements, label);
+          dfs(m, i-m, l, elements, label);
         }
       }
       
       if(i < elements.length - m){
         if(elements[(int)(i + m)] != 0  && label[(int)(i + m)] == -1){
-          dfs(i+m, l, elements, label);
+          dfs(m, i+m, l, elements, label);
         }
       }
       
@@ -139,7 +160,7 @@ public class ConnectedComponents {
     }
     
     // count edges for a node
-    private static void countEdges(long i, long[] elements, long[] edgeCount){
+    private static void countEdges(long m, long i, long[] elements, long[] edgeCount){
     
       if(!(i < m && elements.length != g*m) ){ // So that we do not double count boundary edges
                                                // Don't count up and down edges if in
@@ -174,6 +195,9 @@ public class ConnectedComponents {
     
     public void reduce(LongWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
       
+      long m = context.getConfiguration().getLong("m", 0);
+      long g = context.getConfiguration().getLong("g", 0);
+      
       long groupNum = key.get();
       // Size of first group (g = 0) is g*m, otherwise (1 + g) * m
       long maxElements = (g + 1)*m;
@@ -189,21 +213,23 @@ public class ConnectedComponents {
         int index = (int)(val.get() - offset);
         elements[index] = 1;
       }
-      
+      long elementCount = 0;
       for(long i = 0; i < maxElements; i++){
         if(elements[(int)i] == 1 && label[(int)i] == -1){
           // Perform a DFS 
-          dfs(i, i, elements, label);
+          dfs(m, i, i, elements, label);
         }
         if(elements[(int)i] == 1){
+          elementCount++;
           // Count the number of edges for a node
-          countEdges(i, elements, edgeCount);
+          countEdges(m, i, elements, edgeCount);
           // Emit if node exists 
           context.write(new LongWritable(groupNum),
               new Text(Long.toString(i+offset) + " " + Long.toString(label[(int)i] + offset)
                         + " " + Long.toString(edgeCount[(int)i]))); 
         }
       }
+      System.out.println(elementCount);
     }
   }
   	
@@ -212,6 +238,9 @@ public class ConnectedComponents {
       private static long countEmissions = 0;
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        
+        long m = context.getConfiguration().getLong("m", 0);
+        long g = context.getConfiguration().getLong("g", 0);
         
         LongWritable one = new LongWritable(1);
         
@@ -263,6 +292,9 @@ public class ConnectedComponents {
     }
     
     public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      
+      long m = context.getConfiguration().getLong("m", 0);
+      long g = context.getConfiguration().getLong("g", 0);
       
       // Hashmaps with an appropriate initial capacity
       HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
@@ -334,6 +366,9 @@ public class ConnectedComponents {
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         
+        long m = context.getConfiguration().getLong("m", 0);
+        long g = context.getConfiguration().getLong("g", 0);
+        
         LongWritable one = new LongWritable(1);
         
         String nodeStr = value.toString();
@@ -380,6 +415,9 @@ public class ConnectedComponents {
     }
     
     public void reduce(LongWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      
+      long m = context.getConfiguration().getLong("m", 0);
+      long g = context.getConfiguration().getLong("g", 0);
       
       // Hashmaps with an appropriate initial capacity
       HashMap<Long, ArrayList<Node>> positionsMap = new HashMap<Long, ArrayList<Node>>((int)(m*m/g));
@@ -448,6 +486,9 @@ public class ConnectedComponents {
   
   public static class StatisticsMap extends Mapper<LongWritable, Text, LongWritable, Text> {
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+	  long m = context.getConfiguration().getLong("m", 0);
+    long g = context.getConfiguration().getLong("g", 0);
+	
     	LongWritable one = new LongWritable(1);
 		String line = value.toString();
 		context.write(one, new Text(line));
@@ -456,6 +497,10 @@ public class ConnectedComponents {
 	
   public static class StatisticsReduce extends Reducer<LongWritable, Text, LongWritable, Text> {
 	public void reduce(LongWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
+    
+    long m = context.getConfiguration().getLong("m", 0);
+    long g = context.getConfiguration().getLong("g", 0);
+    
     LongWritable one = new LongWritable(1);
 		
 		Iterator<Text> values = iterableValues.iterator();
@@ -496,6 +541,7 @@ public class ConnectedComponents {
 					"Number of distinct connected components: %s \n" + 
 					"Average size of connected components: %s \n" + 
 					"Average burn count: %s \n";
+		System.out.println(s);
 		String stats = String.format(s, Long.toString(totalNodes), Long.toString(totalEdges), 
 			Long.toString(totalComponents), Float.toString(averageComponentSize), Float.toString(averageBurnCount));
 					
@@ -508,9 +554,14 @@ public class ConnectedComponents {
     // Format for folders on S3:
     // s3n://(file|folder)
     // Order of args: m inputPath outputPath
+    
+    /*
+    cs5300.ConnectedComponents 40 s3n://jasdeep/input/data11.txt s3n://jasdeep/output
+    cs5300.ConnectedComponents 40 s3n://edu-cornell-cs-cs5300s12-assign5-data/data11.txt s3n://jasdeep/output
+    */
 
     m = Long.parseLong(args[0]);
-    g= computeG(m);
+    g = computeG(m);
 
     String input = args[1];
     String output = args[2];
@@ -520,7 +571,33 @@ public class ConnectedComponents {
     String  third = "ThirdPassOutput";
     String  stats = "StatisticsOutput";
 
+    System.out.println("-----------------------------------------");
+    System.out.println("MAIN METHOD IS BEING CALLED");
+    System.out.println("m: " + m);
+    System.out.println("g: " + g);
+    System.out.println("Input path: " + input);
+    File file = new File(input);
+    System.out.println("Input file size: " + file.length());
+    file = new File("s3n://jasdeep/project.jar");
+    System.out.println("Jar file size (because we know this must exist): " + file.length());
+    System.out.println("-----------------------------------------");
+    //System.out.println("File contents:");
+    //FileInputStream fstream = new FileInputStream(input);
+    //DataInputStream in = new DataInputStream(fstream);
+    //BufferedReader br = new BufferedReader(new InputStreamReader(in));
+    //String strLine;
+    //Read File Line By Line
+    //while ((strLine = br.readLine()) != null)   {
+      // Print the content on the console
+      //System.out.println (strLine);
+    //}
+    System.out.println("-----------------------------------------");
+
     Configuration conf = new Configuration();
+    conf.setFloat("wLimit", wLimit);
+    conf.setFloat("wMin", wMin);
+    conf.setLong("m", m);
+    conf.setLong("g", g);
         
     Job job = new Job(conf, "firstpass");
     job.setJarByClass(ConnectedComponents.class);
@@ -530,8 +607,8 @@ public class ConnectedComponents {
     job.setOutputValueClass(Text.class);        
     job.setMapperClass(FirstPassMap.class);
     job.setReducerClass(FirstPassReduce.class);        
-    job.setInputFormatClass(TextInputFormat.class);
-    job.setOutputFormatClass(TextOutputFormat.class);       
+    //job.setInputFormatClass(TextInputFormat.class);
+    //job.setOutputFormatClass(TextOutputFormat.class);       
     FileInputFormat.addInputPath(job, new Path(input));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + first));
     job.waitForCompletion(true);
@@ -544,8 +621,8 @@ public class ConnectedComponents {
     job.setOutputValueClass(Text.class);
     job.setMapperClass(SecondPassMap.class);
     job.setReducerClass(SecondPassReduce.class);
-    job.setInputFormatClass(TextInputFormat.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
+    //job.setInputFormatClass(TextInputFormat.class);
+    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + first));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + second));
     job.waitForCompletion(true);
@@ -558,8 +635,8 @@ public class ConnectedComponents {
     job.setOutputValueClass(LongWritable.class);
     job.setMapperClass(ThirdPassMap.class);
     job.setReducerClass(ThirdPassReduce.class);
-    job.setInputFormatClass(TextInputFormat.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
+    //job.setInputFormatClass(TextInputFormat.class);
+    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + first));
     FileInputFormat.addInputPath(job, new Path(output + "/" + second));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + third));
@@ -573,8 +650,8 @@ public class ConnectedComponents {
     job.setOutputValueClass(Text.class);
     job.setMapperClass(StatisticsMap.class);
     job.setReducerClass(StatisticsReduce.class);
-    job.setInputFormatClass(TextInputFormat.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
+    //job.setInputFormatClass(TextInputFormat.class);
+    //job.setOutputFormatClass(TextOutputFormat.class);
     FileInputFormat.addInputPath(job, new Path(output + "/" + third));
     FileOutputFormat.setOutputPath(job, new Path(output + "/" + stats));
     job.waitForCompletion(true); 
