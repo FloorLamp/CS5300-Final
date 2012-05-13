@@ -557,7 +557,7 @@ public class ConnectedComponents {
     
     /*
     cs5300.ConnectedComponents 40 s3n://jasdeep/input/data11.txt s3n://jasdeep/output
-    cs5300.ConnectedComponents 40 s3n://edu-cornell-cs-cs5300s12-assign5-data/data11.txt s3n://jasdeep/output
+    cs5300.ConnectedComponents 20000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
     */
 
     m = Long.parseLong(args[0]);
