@@ -301,9 +301,9 @@ public class ConnectedComponents {
       int g = context.getConfiguration().getInt("g", 0);
       
       // Hashmaps with an appropriate initial capacity
-      System.out.println("About to initialize HashMaps with capacity " + m*m/g);
-      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
-      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
+      System.out.println("About to initialize HashMaps with no initial capacity ");
+      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>();
+      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>();
       System.out.println("Hashmaps initialized");
       
       String nodeStr;
@@ -430,9 +430,9 @@ public class ConnectedComponents {
       int m = context.getConfiguration().getInt("m", 0);
       int g = context.getConfiguration().getInt("g", 0);
       
-      // Hashmaps with an appropriate initial capacity
-      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>((m*m/g));
-      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>((m*m/g));
+      // Hashmaps with no initial capacity
+      HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>();
+      HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>();
       
       String nodeStr;
       String[] nodeInfo;
@@ -563,7 +563,7 @@ public class ConnectedComponents {
 
     /* Example input
     cs5300.ConnectedComponents 40 s3n://jasdeep/input/data11.txt s3n://jasdeep/output
-    cs5300.ConnectedComponents 20000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
+    cs5300.ConnectedComponents 10000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
     */
 
     int m = Integer.parseInt(args[0]);
