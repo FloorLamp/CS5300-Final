@@ -1,0 +1,25 @@
+HOW TO COMPILE/RUN:
+- compile: javac -classpath HADOOP_LIBRARY -d classes ConnectedComponents.java
+           jar -cvf project.jar -C classes/ .
+           
+- run: After uploading jar to AWS, start it with these arguments:
+       cs5300.ConnectedComponents <m (the size of one side of the forest)> <input_file> <output_folder>
+       
+       Example:
+       cs5300.ConnectedComponents 10000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
+
+RESULTS:
+--------------------------------
+m = 10000, netid = jsh263:
+- wMin = 0.1448
+- wLimit = 0.7348
+
+Number of vertices: 59002229 
+Number of edges: 69620101 
+Number of distinct connected components: 2851303 
+Average size of connected components: 2992.29 
+Average burn count: 1765.5177
+--------------------------------
+
+
+
