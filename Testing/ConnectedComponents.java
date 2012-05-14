@@ -304,7 +304,7 @@ public class ConnectedComponents {
       System.out.println("About to initialize HashMaps with capacity " + m*m/g);
       HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
       HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
-      System.out.println("Hashmaps initialized")
+      System.out.println("Hashmaps initialized");
       
       String nodeStr;
       String[] nodeInfo;
