@@ -1,4 +1,4 @@
-HOW TO COMPILE/RUN:
+############## HOW TO COMPILE/RUN ################
 - compile: javac -classpath HADOOP_LIBRARY -d classes ConnectedComponents.java
            jar -cvf project.jar -C classes/ .
            
@@ -8,7 +8,7 @@ HOW TO COMPILE/RUN:
        Example:
        cs5300.ConnectedComponents 10000 s3n://edu-cornell-cs-cs5300s12-assign5-data/production.txt s3n://jasdeep/output
 
-RESULTS:
+################### RESULTS #####################
 --------------------------------
 m = 10000, netid = jsh263:
 - wMin = 0.1448
@@ -21,5 +21,4 @@ Average size of connected components: 2992.29
 Average burn count: 1765.5177
 --------------------------------
 
-
-
+############ SOLUTION DESCRIPTION ################
