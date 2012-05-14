@@ -207,7 +207,9 @@ public class ConnectedComponents {
         int index = val.get() - offset;
         elements[index] = 1;
       }
-      
+      // For every element, perform a DFS if it isn't labeled by the time we get there
+      // - If it's not, it must be the lowest numbered node in its (local) component,
+      //   so it's number is the one we use as the label
       for(int i = 0; i < maxElements; i++){
         if(elements[i] == 1 && label[i] == -1){
           // Perform a DFS 
@@ -224,7 +226,8 @@ public class ConnectedComponents {
       }
     }
   }
-  	
+  
+  // Map boundary nodes and labels from last pass to single reducer
   public static class SecondPassMap extends Mapper<LongWritable, Text, IntWritable, Text> { 
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -243,7 +246,7 @@ public class ConnectedComponents {
         int gm = g*m;
         int modulus = nodeNum % gm;
         
-        // First find out if the node is a boundary node
+        // Output if the node is indeed a boundary node
         if( (nodeNum < m*(m - 1)) && (modulus >= (g-1)*m) ){
           context.write(one, new Text(nodeStr));
         }
@@ -252,14 +255,18 @@ public class ConnectedComponents {
       }
   }
   
+  // Computes connected component labels for every boundary node
   public static class SecondPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
     // Depth first labeling of nodes
+    // - Iterates through nodes with same label, then performs a depth
+    //   first search on the labels for each position of each node with the
+    //   original label
     private static void dfs(int currentLabel, int newLabel,
       HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
         
         Integer key = new Integer(currentLabel);
-        
+        // We use a stack to avoid stack overflows from recursion
         Stack stack = new Stack();
         stack.push(key);
         
@@ -294,13 +301,17 @@ public class ConnectedComponents {
       int g = context.getConfiguration().getInt("g", 0);
       
       // Hashmaps with an appropriate initial capacity
+      System.out.println("About to initialize HashMaps with capacity " + m*m/g);
       HashMap<Integer, ArrayList<Node>> positionsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
       HashMap<Integer, ArrayList<Node>> labelsMap = new HashMap<Integer, ArrayList<Node>>(m*m/g);
+      System.out.println("Hashmaps initialized")
       
       String nodeStr;
       String[] nodeInfo;
       Node node;
       
+      // Parses the boundary nodes we're getting into the maps
+      System.out.println("Parsing boundary nodes");
       for(Text val : values) {
         nodeStr = val.toString();
         
@@ -323,12 +334,15 @@ public class ConnectedComponents {
         }
         labelsMap.get(nl).add(node);
       }
-      
+      System.out.println("Sorting labels/positions");
+      // Obtain the positions of all boundary nodes in order
       List<Integer> positions=new ArrayList<Integer>(positionsMap.keySet());
       Collections.sort(positions);
+      // Obtain the labels of all boundary nodes in order
       List<Integer> labels=new ArrayList<Integer>(labelsMap.keySet());
       Collections.sort(labels);
-      
+      System.out.println("Finished sorting labels/positions");
+      System.out.println("Starting DFS");
       // Loop through labels, performing DFS where necessary
       for(int i = 0; i < labels.size(); i++){
           Integer label = labels.get(i);
@@ -336,6 +350,7 @@ public class ConnectedComponents {
               dfs(label.intValue(), label.intValue(), positionsMap, labelsMap);
           }
       }
+      System.out.println("Finished DFS");
       
       // Loop through positions, outputting what we've found
       for(int k = 0; k < positions.size(); k++){
@@ -346,7 +361,8 @@ public class ConnectedComponents {
           for(int l = 0; l < nodes.size(); l++){
               totalEdges += nodes.get(l).numEdges;
           }
-          
+          // Output every node at that position (there should just be two
+          //   since this node is being shared by two groups)
           for(int l = 0; l < nodes.size(); l++){
               node = nodes.get(l);
               context.write(new IntWritable(node.groupNum), 
