@@ -21,7 +21,7 @@ public class ConnectedComponents {
   //static Log mapLog = LogFactory.getLog(FirstPassMap.class);
   //static Log reduceLog = LogFactory.getLog(FirstPassReduce.class);  
 
-  // g^2 = m is optimal
+  // Compute the optimal g (which should approximately match g^2 = m)
   static int computeG(int val) {
 
       int estG = (int)(Math.pow((double)val, 1.5));
@@ -39,12 +39,13 @@ public class ConnectedComponents {
       return factors.get(factors.size() - 1);
   }
   
+  // A class to represent a node in the graph
   public static class Node{
     public int groupNum;
     public int nodeNum;
     public int nodeLabel;
     public int numEdges;
-    public boolean visited;
+    public boolean visited; // Whether or note we visited this node in a DFS
     
     public Node(int gn, int nn, int nl, int ne){
       groupNum = gn;
@@ -61,6 +62,7 @@ public class ConnectedComponents {
   private static final float wMin = 0.4f * fromNetID;
   private static final float wLimit = wMin + desiredDensity;
 
+  // Maps the input file, numbering nodes and keying them by group
   public static class FirstPassMap extends Mapper<LongWritable, Text, IntWritable, IntWritable> {
       
       private Text word = new Text();
@@ -76,7 +78,7 @@ public class ConnectedComponents {
         
         int lineNum = (int)(key.get() / 12 + 1);
 
-        // Make sure m is actually going to be a point in our graph
+        // Check if the point at this line number will be in the graph
         if(lineNum > m*m || val < wMin || val >= wLimit){
           return;
         }
@@ -100,7 +102,7 @@ public class ConnectedComponents {
         }
 
         context.write(new IntWritable(x/g), new IntWritable(x*m + y));
-        // If this is a boundary point
+        // If this is a boundary point, must be emitted in two groups
         if(x != (m - 1) && (x % g) == (g - 1)){
           context.write(new IntWritable(x/g + 1), new IntWritable(x*m + y));
         }
@@ -108,19 +110,19 @@ public class ConnectedComponents {
         return;
       }
   }
-	
+	  // Determines local connected components for each group
     public static class FirstPassReduce extends Reducer<IntWritable,IntWritable,IntWritable,Text> {
     
     // Depth first labeling for the nodes
     private static void dfs(int m, int i, int l, int[] elements, int[] label){
-      
+      // Uses stack instead of recursion
       Stack stack = new Stack();
       stack.push(new Integer(i));
       
       while(!stack.empty()){
           i = ((Integer)stack.pop()).intValue();
           label[i] = l;
-          
+          // Searches all 4 bordering points, if they exist
           if(i % m != (m - 1) && i != elements.length){
             if(elements[(i + 1)] != 0 && label[(i + 1)] == -1){
               stack.push(new Integer(i+1));
@@ -149,10 +151,11 @@ public class ConnectedComponents {
     // count edges for a node
     private static void countEdges(int g,  int m, int i, int[] elements, int[] edgeCount){
     
-      if(!(i < m && elements.length != g*m) ){ // So that we do not double count boundary edges
-                                               // Don't count up and down edges if in
-                                               //    the first column for all groups
-                                               //    except group 0
+      // So that we do not double count boundary edges:
+      // - Don't count up and down edges if in
+      //   the first column for all groups except group 0
+      if(!(i < m && elements.length != g*m) ){
+        // Check all 4 possibilities around each node
         if(i % m != (m - 1) && i != elements.length){
           if(elements[(i + 1)] != 0){
             edgeCount[i] += 1;
@@ -180,6 +183,7 @@ public class ConnectedComponents {
       return;
     }
     
+    // Actual reduce step
     public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
       
       int m = context.getConfiguration().getInt("m", 0);
@@ -188,26 +192,28 @@ public class ConnectedComponents {
       int groupNum = key.get();
       // Size of first group (g = 0) is g*m, otherwise (1 + g) * m
       int maxElements = (g + 1)*m;
+      // Calculate offset for our arrays
       int offset = groupNum * m * g - m;
       if(groupNum == 0){ maxElements -= m; offset += m;}
       
+      // Initialize arrays to store node info for this group
       int[] elements = new int[maxElements];
       int[] label = new int[maxElements];
       int[] edgeCount = new int[maxElements];
-      Arrays.fill(label, (int)(-1));
+      Arrays.fill(label, (int)(-1)); // All nodes initially have no component label
       
+      // Fill in elements array with existing elements
       for(IntWritable val : values) {
         int index = val.get() - offset;
         elements[index] = 1;
       }
-      int elementCount = 0;
+      
       for(int i = 0; i < maxElements; i++){
         if(elements[i] == 1 && label[i] == -1){
           // Perform a DFS 
           dfs(m, i, i, elements, label);
         }
         if(elements[i] == 1){
-          elementCount++;
           // Count the number of edges for a node
           countEdges(g, m, i, elements, edgeCount);
           // Emit if node exists 
@@ -216,7 +222,6 @@ public class ConnectedComponents {
                         + " " + Integer.toString(edgeCount[i]))); 
         }
       }
-      System.out.println(elementCount);
     }
   }
   	
