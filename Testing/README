@@ -21,4 +21,66 @@ Average size of connected components: 2992.29
 Average burn count: 1765.5177
 --------------------------------
 
+############### KNOWN ISSUES #####################
+- We can't run it on the 20000x20000 example
+    - Runs out of memory in the second phase reducer
+    - Fixes possible (it is possible to take out the hashmaps), but we were out of time
+
 ############ SOLUTION DESCRIPTION ################
+Overall phases:
+1. Map each node to a group, find connected components local to each group
+2. Map boundary nodes to single reducer, find connected components across boundary nodes
+3. Map all nodes to groups, use info from phase 2 to update connected component labeling
+4. Map each node to a single reducer, compute and output statistics
+
+First phase:
+  Mapper:
+    - Compute line number, compute node number, map node to appropriate group
+    - Map node to both of its containing groups if it is a boundary node
+  Reducer:
+    - Run depth-first search, starting with the lowest numbered node
+       - Search along edges for each node
+       - When starting a depth first search, start with lowest node that is still
+         unlabeled, and label every node encountered on this search with that label
+       - Uses a stack to simulate recursion because stack frames are expensive
+    - Also count edges for each node
+       - Don't count edges along the last boundary column of the group, because
+         we'll count these in the other group that they are in
+    - Emit node's number, group (this is the key), component label, and edge count
+  
+Second phase:
+  Mapper:
+    - Run through output from previous step, compute if node is boundary node
+    - Emit node if it is to a single reducer
+  Reducer:
+    - Use HashMap to store incoming nodes in lists by label and position
+    - Sort set of labels and positions from received nodes
+    - Run depth-first search on labels and positions to determine connected
+      components across boundary nodes, starting with lowest label
+        - Two boundary nodes with the same node number will likely have different
+          labels, because they were of course in different groups
+        - So when we start a DFS at the label of one, mark the other with this
+          label, but also recursively mark every node with its old label
+          with the new label 
+        - When starting a depth first search, start with lowest node that is still
+          unlabeled, and label every node encountered on this search with that label
+        - Uses a stack to simulate recursion because stack frames are expensive
+    - Emit node's number, group (this is the key), component label, and edge count
+
+Third phase:
+  Mapper:
+    - Run through output from both first and second phase
+    - Map nodes to each group they belong to
+  Reducer:
+    - Run local DFS again, but using the method from the second phase
+    - If node should be emitted from this group (we don't emit the rightmost
+      boundary column to make sure we only emit each node once), emit its
+      node number, component label, and edge count
+      
+Fourth phase:
+  Mapper:
+    - Maps each node to a single reducer
+  Reducer:
+    - Identifies connected component for each node, increments its count
+    - Also keeps track of total edges and nodes
+    - Compute and output statistics
