@@ -373,6 +373,7 @@ public class ConnectedComponents {
     }
   }
   
+  // Maps merged boundary nodes and interior nodes to their proper groups
   public static class ThirdPassMap extends Mapper<LongWritable, Text, IntWritable, Text> { 
       
       public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
@@ -392,12 +393,17 @@ public class ConnectedComponents {
       }
   }
   
+  // Runs a connected component finder on the individual groups for the second time
   public static class ThirdPassReduce extends Reducer<IntWritable,Text,IntWritable,Text> {
     
+    // Depth first search to connect components
+    // - Iterates through all nodes with a particular component label, then
+    //   performs a depth-first search on the labels of those nodes that have
+    //   the same position as one of the nodes with the original label
     private static void dfs(int currentLabel, int newLabel,
       HashMap<Integer, ArrayList<Node>> positionsMap, HashMap<Integer, ArrayList<Node>> labelsMap){
         Integer key = new Integer(currentLabel);
-        
+        // We use a stack to avoid stack overflows from recursio
         Stack stack = new Stack();
         stack.push(key);
         
@@ -406,8 +412,6 @@ public class ConnectedComponents {
             key = ((Integer)stack.pop());
             ArrayList<Node> nodes = labelsMap.get(key);
             
-            // Iterate through each position in the labels list, running dfs
-            // on each of those labels
             for(int i = 0; i < nodes.size(); i++){
                 nodes.get(i).nodeLabel = newLabel;
                 nodes.get(i).visited = true;
@@ -425,6 +429,7 @@ public class ConnectedComponents {
         }
     }
     
+    // Actual reduce step
     public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       
       int m = context.getConfiguration().getInt("m", 0);
@@ -440,6 +445,7 @@ public class ConnectedComponents {
       
       int groupNum = key.get();
       
+      // Parse nodes into the hash maps
       for(Text val : values) {
         nodeStr = val.toString();
         
@@ -463,6 +469,7 @@ public class ConnectedComponents {
         labelsMap.get(nl).add(node);
       }
       
+      // Sort nodes on positions and labels
       List<Integer> positions=new ArrayList<Integer>(positionsMap.keySet());
       Collections.sort(positions);
       List<Integer> labels=new ArrayList<Integer>(labelsMap.keySet());
@@ -490,6 +497,7 @@ public class ConnectedComponents {
           node = nodes.get(0);
 
           // This check makes sure we only output each boundary node once
+          // Guarantees that the Statistics phase only sees each node once
           int offset = groupNum * m * g - m;
           int offsetNodeNum = node.nodeNum - offset;
           if(!(offsetNodeNum < m && groupNum != 0)){
@@ -503,6 +511,7 @@ public class ConnectedComponents {
     }
   }
   
+  // Statistics mapper, just feeds forward the node with a label
   public static class StatisticsMap extends Mapper<LongWritable, Text, IntWritable, Text> {
 	  public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {	
       IntWritable one = new IntWritable(1);
@@ -510,7 +519,7 @@ public class ConnectedComponents {
 		  context.write(one, new Text(line));
 		}
 	}
-
+  // Computes statistics for connected components
   public static class StatisticsReduce extends Reducer<IntWritable, Text, IntWritable, Text> {
 	public void reduce(IntWritable key, Iterable<Text> iterableValues, Context context) throws IOException, InterruptedException {
     
@@ -525,6 +534,8 @@ public class ConnectedComponents {
 		int totalEdges = 0;
 		HashMap<Integer, Integer> components = new HashMap<Integer, Integer>();
 
+    // For each node, increment the count for its connected component
+    // Also add its edge count to the total number of edges
 		while (values.hasNext()) {
 		  String val = values.next().toString();
 			String[] line = val.split("\\s+");
@@ -535,6 +546,7 @@ public class ConnectedComponents {
 			totalNodes++;
 			components.put(label, node + 1);
 		}
+		// Compute + output statistics
 		totalEdges /= 2; // Each edge is counted twice so divide by 2 to get real total
 		int totalComponents = components.size();
 
